@@ -4,7 +4,7 @@ body {
 }
 .subtitles {
   text-align: center;
-  font-size: 2em;
+  font-size: 2.5em;
   padding: 10px;
   margin-bottom: 10px;
   border-bottom: 1px solid #fff;
@@ -30,8 +30,8 @@ body {
   text-align: center;
 }
 .nav button{
-  width: 50px;
-  height: 50px;
+  width: 60px;
+  height: 60px;
   border: 1px solid #fff;
   background: #000;
   color: #fff;
