@@ -21,7 +21,7 @@ body {
   cursor: pointer;
 }
 .translation {
-  padding-bottom: 70px;
+  padding: 10px 10px 10px 70px;
 }
 .translation section p {
   margin-left: 20px;
