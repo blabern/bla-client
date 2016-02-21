@@ -46,10 +46,11 @@ var view = (function(){
   }())
 
   var cursor = -1
-  var autoFollow = true
   var history = []
 
   var nav = (function() {
+    var autoSync
+
     var nav = document.createElement('div')
     nav.className = 'nav'
     app.appendChild(nav)
@@ -58,11 +59,13 @@ var view = (function(){
     nav.appendChild(prev)
 
     var follow = document.createElement('button')
-    follow.className = 'follow'
+    follow.className = 'sync'
     nav.appendChild(follow)
+    setAutoSync(true)
+
     follow.addEventListener('click', function() {
       document.body.scrollTop = 0
-      autoFollow = true
+      setAutoSync(true)
       cursor = history.length - 1
       renderSubtitle(history[cursor])
     })
@@ -80,15 +83,31 @@ var view = (function(){
           cursor++
           if (!history[cursor]) cursor = history.length - 1
         }
-        autoFollow = false
+        setAutoSync(false)
+
         renderSubtitle(history[cursor])
       })
     })
+
+    function setAutoSync(value) {
+      autoSync = value
+      if (value) follow.classList.add('selected')
+      else follow.classList.remove('selected')
+    }
+
+    function getAutoSync() {
+      return autoSync
+    }
+
+    return {
+      setAutoSync: setAutoSync,
+      getAutoSync: getAutoSync
+    }
   }())
 
   function onSubtitle(data) {
     history.push(data)
-    if (autoFollow) {
+    if (nav.getAutoSync()) {
       cursor = history.length - 1
       renderSubtitle(data)
     }

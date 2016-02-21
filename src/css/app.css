@@ -41,7 +41,8 @@ body {
   -webkit-user-select: none;
   outline: none;
 }
-.nav button:active {
+.nav button:active,
+.nav button.selected {
   background-color: green;
 }
 .nav .prev {
@@ -49,7 +50,7 @@ body {
   background-size: 70%;
   border-radius: 50%;
 }
-.nav .follow {
+.nav .sync {
   border-radius: 50%;
   margin: 0 20px;
   background: url(../img/icons/sync.svg) no-repeat center #fff;
