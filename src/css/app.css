@@ -1,0 +1,48 @@
+body {
+  background: black;
+  color: white;
+}
+.subtitles {
+  text-align: center;
+  font-size: 2em;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #fff;
+}
+.subtitles p {
+  margin: 0;
+  -webkit-user-select: none;
+}
+.subtitles span.selected {
+  background: green;
+  cursor: pointer;
+}
+.translation {
+  padding-bottom: 50px;
+}
+.translation section p {
+  margin-left: 20px;
+}
+.nav {
+  position: fixed;
+  width: 100%;
+  bottom: 10px;
+  text-align: center;
+}
+.nav button{
+  width: 80px;
+  height: 40px;
+  border: 1px solid #fff;
+  background: #000;
+  color: #fff;
+  -webkit-user-select: none;
+}
+.nav button:active {
+  background: green;
+}
+.nav .follow {
+  border-radius: 50%;
+  margin: 0 20px;
+  height: 50px;
+  width: 50px;
+}

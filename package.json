@@ -1,0 +1,15 @@
+{
+  "dependencies": {
+    "fastclick": "^1.0.6",
+    "localtunnel": "^1.8.1",
+    "node-static": "^0.7.7",
+  },
+  "devDependencies": {
+
+  },
+  "scripts": {
+    "start": "npm run static & npm run tunnel:site",
+    "static": "static ./src",
+    "tunnel:site": "lt -s blabernclient -p 8080"
+  }
+}
