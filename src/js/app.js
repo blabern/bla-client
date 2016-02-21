@@ -1,3 +1,4 @@
+var socketUrl = 'https://bla-server.herokuapp.com/'
 
 var view = (function(){
   (function init() {
@@ -123,7 +124,7 @@ var view = (function(){
 }())
 
 var socket = (function connect() {
-  var socket = io.connect('https://movielangserver.localtunnel.me', {
+  var socket = io.connect(socketUrl, {
     transports: ['polling']
   })
 
