@@ -42,18 +42,18 @@ body {
   background-color: green;
 }
 .nav .prev {
-  background: url(/src/img/icons/circle-left.svg) no-repeat center #fff;
+  background: url(../img/icons/circle-left.svg) no-repeat center #fff;
   background-size: 70%;
   border-radius: 50%;
 }
 .nav .follow {
   border-radius: 50%;
   margin: 0 20px;
-  background: url(/src/img/icons/sync.svg) no-repeat center #fff;
+  background: url(../img/icons/sync.svg) no-repeat center #fff;
   background-size: 60%;
 }
 .nav .next {
-  background: url(/src/img/icons/circle-right.svg) no-repeat center #fff;
+  background: url(../img/icons/circle-right.svg) no-repeat center #fff;
   background-size: 70%;
   border-radius: 50%;
 }
