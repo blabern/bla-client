@@ -61,6 +61,7 @@ var view = (function(){
     follow.className = 'follow'
     nav.appendChild(follow)
     follow.addEventListener('click', function() {
+      document.body.scrollTop = 0
       autoFollow = true
       cursor = history.length - 1
       renderSubtitle(history[cursor])
