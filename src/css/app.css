@@ -13,7 +13,10 @@ body {
   margin: 0;
   -webkit-user-select: none;
 }
-.subtitles span.selected {
+.subtitles .word {
+  cursor: pointer;
+}
+.subtitles .word.selected {
   background: green;
   cursor: pointer;
 }

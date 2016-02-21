@@ -18,17 +18,21 @@ var view = (function(){
     app.appendChild(subtitles)
 
     function select(node) {
-      [].slice.call(subtitles.querySelectorAll('.selected')).forEach(function(node) {
+      if (!node.classList.contains('word')) return null
+
+      ;[].slice.call(subtitles.querySelectorAll('.selected')).forEach(function(node) {
         node.classList.remove('selected')
       })
       node.classList.add('selected')
+
+      return node
     }
 
     subtitles.addEventListener('click', function(e) {
-      select(e.target)
-      var word = e.target.textContent
+      var node = select(e.target)
+      if (!node) return
       // Remove spaces and punktuation marks.
-      word = word.replace(/\W/g, '')
+      var word = node.textContent.replace(/\W/g, '')
       socket.emit('translate', word)
     })
     return subtitles
@@ -92,7 +96,7 @@ var view = (function(){
   function renderSubtitle(data) {
     function wrapInSpans(text) {
       return text.split(' ').map(function(word) {
-        return '<span>' + word + ' </span>'
+        return '<span class="word">' + word + '</span> '
       }).join('')
     }
 
