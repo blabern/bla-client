@@ -1,11 +1,10 @@
 {
   "dependencies": {
-    "fastclick": "^1.0.6",
-    "localtunnel": "^1.8.1",
-    "node-static": "^0.7.7",
+    "fastclick": "^1.0.6"
   },
   "devDependencies": {
-
+    "node-static": "^0.7.7",
+    "localtunnel": "^1.8.1"
   },
   "scripts": {
     "start": "npm run static & npm run tunnel:site",

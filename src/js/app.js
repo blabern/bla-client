@@ -45,18 +45,16 @@ var view = (function(){
   var autoFollow = true
   var history = []
 
-
   var nav = (function() {
     var nav = document.createElement('div')
     nav.className = 'nav'
     app.appendChild(nav)
     var prev = document.createElement('button')
-    prev.textContent = 'Prev'
+    prev.className = 'prev'
     nav.appendChild(prev)
 
     var follow = document.createElement('button')
     follow.className = 'follow'
-    follow.textContent = 'A'
     nav.appendChild(follow)
     follow.addEventListener('click', function() {
       autoFollow = true
@@ -65,7 +63,7 @@ var view = (function(){
     })
 
     var next = document.createElement('button')
-    next.textContent = 'Next'
+    next.className = 'next'
     nav.appendChild(next)
 
     ;[prev, next].forEach(function(button) {
