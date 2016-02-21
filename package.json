@@ -8,7 +8,7 @@
   },
   "scripts": {
     "start": "npm run static & npm run tunnel:site",
-    "static": "static ./src",
+    "static": "static .",
     "tunnel:site": "lt -s blabernclient -p 8080"
   }
 }
