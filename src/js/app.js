@@ -1,6 +1,6 @@
 (function() {
 
-var baseUrl = 'https://bla-server.herokuapp.com/'
+var baseUrl = 'https://bla-server.herokuapp.com'
 //var baseUrl = 'http://localhost:3000'
 
 function toArray(obj) {
