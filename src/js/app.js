@@ -1,4 +1,10 @@
+(function() {
+
 var socketUrl = 'https://bla-server.herokuapp.com/'
+
+function toArray(obj) {
+  return [].slice.call(obj)
+}
 
 var view = (function(){
   (function init() {
@@ -18,22 +24,22 @@ var view = (function(){
     app.appendChild(subtitles)
 
     function select(node) {
-      if (!node.classList.contains('word')) return null
+      if (!node.classList.contains('word')) return false
+      node.classList.toggle('selected')
+      return true
+    }
 
-      ;[].slice.call(subtitles.querySelectorAll('.selected')).forEach(function(node) {
-        node.classList.remove('selected')
-      })
-      node.classList.add('selected')
-
-      return node
+    function getWords(node) {
+      return toArray(subtitles.querySelectorAll('.selected')).map(function(node) {
+        // Remove spaces and punktuation marks.
+        return node.textContent.replace(/\W/g, '')
+      }).join(' ')
     }
 
     subtitles.addEventListener('click', function(e) {
-      var node = select(e.target)
-      if (!node) return
-      // Remove spaces and punktuation marks.
-      var word = node.textContent.replace(/\W/g, '')
-      socket.emit('translate', word)
+      var node = e.target
+      if (!select(node)) return
+      socket.emit('translate', getWords(node))
     })
     return subtitles
   }())
@@ -161,5 +167,4 @@ var socket = (function connect() {
   return socket
 }())
 
-
-
+}())
