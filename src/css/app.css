@@ -1,6 +1,9 @@
 body {
-  background: black;
+  background: #111;
   color: white;
+}
+.app {
+  box-sizing: border-box;
 }
 .subtitles {
   text-align: center;
@@ -17,7 +20,7 @@ body {
   cursor: pointer;
 }
 .subtitles .word.selected {
-  background: green;
+  background: #26ADE4;
   cursor: pointer;
 }
 .translation {
@@ -29,35 +32,32 @@ body {
 .nav {
   position: fixed;
   width: 100%;
-  bottom: 10px;
+  bottom: 0;
+  padding: 5px 0;
   text-align: center;
+  background: rgba(17,17,17, 0.8);
 }
 .nav button{
   width: 60px;
   height: 60px;
-  border: 1px solid #fff;
-  background: #000;
-  color: #fff;
   -webkit-user-select: none;
   outline: none;
+  border: none;
+  background: no-repeat center;
+  background-size: 70%;
+  border-radius: 50%;
 }
 .nav button:active,
 .nav button.selected {
-  background-color: green;
+  background-color: #26ADE4;
 }
 .nav .prev {
-  background: url(../img/icons/circle-left.svg) no-repeat center #fff;
-  background-size: 70%;
-  border-radius: 50%;
+  background-image: url(../img/icons/circle-left.svg);
 }
 .nav .sync {
-  border-radius: 50%;
   margin: 0 20px;
-  background: url(../img/icons/sync.svg) no-repeat center #fff;
-  background-size: 60%;
+  background-image: url(../img/icons/sync.svg);
 }
 .nav .next {
-  background: url(../img/icons/circle-right.svg) no-repeat center #fff;
-  background-size: 70%;
-  border-radius: 50%;
-}
+  background-image: url(../img/icons/circle-right.svg);
+
