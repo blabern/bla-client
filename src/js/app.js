@@ -175,6 +175,7 @@ function translate(text, callback) {
 }
 
 ;(function init() {
+  MBP.scaleFix()
   MBP.hideUrlBarOnLoad()
   MBP.listenForGhostClicks()
   FastClick.attach(document.body)

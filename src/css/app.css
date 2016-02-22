@@ -1,8 +1,8 @@
-body {
+html, body {
   background: #111;
   color: white;
 }
-.app {
+.app * {
   box-sizing: border-box;
 }
 .subtitles {
@@ -60,4 +60,4 @@ body {
 }
 .nav .next {
   background-image: url(../img/icons/circle-right.svg);
-
+}
