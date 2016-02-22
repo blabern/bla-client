@@ -1,17 +1,15 @@
 (function() {
 
-var socketUrl = 'https://bla-server.herokuapp.com/'
+var baseUrl = 'https://bla-server.herokuapp.com/'
+//var baseUrl = 'http://localhost:3000'
 
 function toArray(obj) {
   return [].slice.call(obj)
 }
 
-var view = (function(){
-  (function init() {
-    MBP.hideUrlBarOnLoad()
-    MBP.listenForGhostClicks()
-    FastClick.attach(document.body)
-  }())
+function createView() {
+  var cursor = -1
+  var history = []
 
   var app = document.createElement('div')
   app.className = 'app'
@@ -20,7 +18,6 @@ var view = (function(){
   var subtitles = (function() {
     var subtitles = document.createElement('div')
     subtitles.className = 'subtitles'
-    subtitles.innerHTML = 'Waiting for subtitles'
     app.appendChild(subtitles)
 
     function select(node) {
@@ -39,7 +36,8 @@ var view = (function(){
     subtitles.addEventListener('click', function(e) {
       var node = e.target
       if (!select(node)) return
-      socket.emit('translate', getWords(node))
+      var words = getWords(node)
+      if (words) translate(words, renderTranslation)
     })
     return subtitles
   }())
@@ -50,9 +48,6 @@ var view = (function(){
     app.appendChild(translation)
     return translation
   }())
-
-  var cursor = -1
-  var history = []
 
   var nav = (function() {
     var autoSync
@@ -73,7 +68,7 @@ var view = (function(){
       document.body.scrollTop = 0
       setAutoSync(true)
       cursor = history.length - 1
-      renderSubtitle(history[cursor])
+      renderSubtitle(history[cursor].original)
     })
 
     var next = document.createElement('button')
@@ -91,7 +86,7 @@ var view = (function(){
         }
         setAutoSync(false)
 
-        renderSubtitle(history[cursor])
+        renderSubtitle(history[cursor].original)
       })
     })
 
@@ -115,18 +110,18 @@ var view = (function(){
     history.push(data)
     if (nav.getAutoSync()) {
       cursor = history.length - 1
-      renderSubtitle(data)
+      renderSubtitle(data.original)
     }
   }
 
-  function renderSubtitle(data) {
+  function renderSubtitle(subtitle) {
     function wrapInSpans(text) {
       return text.split(' ').map(function(word) {
         return '<span class="word">' + word + '</span> '
       }).join('')
     }
 
-    var html = data.original.split('\n').map(function(p) {
+    var html = subtitle.split('\n').map(function(p) {
       return '<p>' + wrapInSpans(p) + '</p>'
     }).join('')
 
@@ -147,12 +142,12 @@ var view = (function(){
 
   return {
     onSubtitle: onSubtitle,
-    renderTranslation: renderTranslation
+    renderSubtitle: renderSubtitle
   }
-}())
+}
 
-var socket = (function connect() {
-  var socket = io.connect(socketUrl, {
+function connect(view) {
+  var socket = io.connect(baseUrl, {
     transports: ['polling']
   })
 
@@ -162,9 +157,29 @@ var socket = (function connect() {
 
   socket.on('subtitle', view.onSubtitle)
 
-  socket.on('translation', view.renderTranslation)
-
   return socket
-}())
+}
 
+function translate(text, callback) {
+  var url = baseUrl + '/translation/' + encodeURI(text)
+  fetch(url)
+    .then(function(res) {
+      return res.text()
+    })
+    .then(function(text) {
+      callback(JSON.parse(text))
+    })
+    .catch(function(err) {
+      console.log(err)
+    })
+}
+
+;(function init() {
+  MBP.hideUrlBarOnLoad()
+  MBP.listenForGhostClicks()
+  FastClick.attach(document.body)
+  var view = createView()
+  view.renderSubtitle('Waiting for subtitles')
+  connect(view)
+}())
 }())
