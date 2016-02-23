@@ -59,16 +59,16 @@ function createView() {
     prev.className = 'prev'
     nav.appendChild(prev)
 
-    var follow = document.createElement('button')
-    follow.className = 'sync'
-    nav.appendChild(follow)
+    var sync = document.createElement('button')
+    sync.className = 'sync'
+    nav.appendChild(sync)
     setAutoSync(true)
 
-    follow.addEventListener('click', function() {
+    sync.addEventListener('click', function() {
       document.body.scrollTop = 0
       setAutoSync(true)
       cursor = history.length - 1
-      renderSubtitle(history[cursor].original)
+      if (history[cursor]) renderSubtitle(history[cursor].original)
     })
 
     var next = document.createElement('button')
@@ -92,8 +92,8 @@ function createView() {
 
     function setAutoSync(value) {
       autoSync = value
-      if (value) follow.classList.add('selected')
-      else follow.classList.remove('selected')
+      if (value) sync.classList.add('selected')
+      else sync.classList.remove('selected')
     }
 
     function getAutoSync() {
