@@ -1,6 +1,6 @@
 (function() {
 
-var baseUrl = 'https://bla-server.herokuapp.com'
+var baseUrl = 'http://api.lingvo.tv'
 //var baseUrl = 'http://localhost:3000'
 
 function toArray(obj) {
