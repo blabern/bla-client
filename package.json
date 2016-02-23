@@ -10,6 +10,6 @@
   "scripts": {
     "start": "npm run static & npm run tunnel:site",
     "static": "static .",
-    "tunnel:site": "lt -s blabernclient -p 8080"
+    "tunnel:site": "lt -s lingvoclient -p 8080"
   }
 }
