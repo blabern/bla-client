@@ -86,7 +86,7 @@ function createView() {
         }
         setAutoSync(false)
 
-        renderSubtitle(history[cursor].original)
+        if (history[cursor]) renderSubtitle(history[cursor].original)
       })
     })
 
