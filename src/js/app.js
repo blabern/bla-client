@@ -180,7 +180,7 @@ function translate(text, callback) {
   MBP.listenForGhostClicks()
   FastClick.attach(document.body)
   var view = createView()
-  view.renderSubtitle('Start watching movie to receive subtitles.')
+  view.renderSubtitle('Play movie to receive subtitles')
   connect(view)
 }())
 }())
