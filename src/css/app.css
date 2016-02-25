@@ -5,35 +5,53 @@ html, body {
 .app * {
   box-sizing: border-box;
 }
-.subtitles {
+
+/* Translations body */
+.body .subtitles {
   text-align: center;
   font-size: 2.5em;
   padding: 10px;
   margin-bottom: 10px;
   border-bottom: 1px solid #fff;
 }
-.subtitles p {
+.body .subtitles p {
   margin: 0;
   -webkit-user-select: none;
 }
-.subtitles .word {
+.body .subtitles .word {
   cursor: pointer;
 }
-.subtitles .word.selected {
+.body .subtitles .word.selected {
   background: #26ADE4;
   cursor: pointer;
 }
-.translation {
+.body .translation {
   padding: 10px 10px 70px 10px;
 }
-.translation section p {
+.body .translation section p {
   margin-left: 20px;
 }
+
+/* Menu body */
+.body .menu {
+  display: none;
+  padding: 10px;
+}
+.body .menu section {
+  margin-bottom: 20px;
+}
+.body .menu label,
+.body .menu select {
+  display: block;
+  width: 100%;
+}
+
+/* Navigation */
 .nav {
   position: fixed;
   width: 100%;
   bottom: 0;
-  padding: 5px 0;
+  padding: 5px 10px;
   text-align: center;
   background: rgba(17,17,17, 0.8);
 }
@@ -46,6 +64,7 @@ html, body {
   background: no-repeat center;
   background-size: 70%;
   border-radius: 50%;
+  cursor: pointer;
 }
 .nav button:active,
 .nav button.selected {
@@ -60,4 +79,16 @@ html, body {
 }
 .nav .next {
   background-image: url(../img/icons/circle-right.svg);
+}
+.nav .menu {
+  float: right;
+  background-image: url(../img/icons/menu.svg);
+}
+
+.app.menu .subtitles,
+.app.menu .translation {
+  display: none;
+}
+.app.menu .menu {
+  display: block;
 }

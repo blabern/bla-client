@@ -1,24 +1,64 @@
 (function() {
 
-var baseUrl = 'http://api.lingvo.tv'
-//var baseUrl = 'http://localhost:3000'
+var conf = {
+  baseUrl: 'http://api.lingvo.tv',
+  //baseUrl: 'http://localhost:3000',
+  languages: [{a: 'en', f: 'English'}, {a: 'de', f: 'German'}, {a: 'ru', f: 'Russian'}, {a: 'es', f: 'Spanish'}, {a: 'it', f: 'Italian'}, {a: 'fr', f: 'French'}, {a: 'pl', f: 'Polnish'}, {a: 'tr', f: 'Turkish'}, {a: 'iw', f: 'Hebrew'}, {a: 'ar', f: 'Arabic'}]
+}
+
+var state = getState() || {
+  autoSync: true,
+  subLang: 'en',
+  trLang: 'en'
+}
+
+function assign(a, b) {
+  for (var key in b) a[key] = b[key]
+  return a
+}
+
+function setState(nextState) {
+  assign(state, nextState)
+  console.log('setState', state)
+  try {
+    localStorage.setItem('lingvo.tv', JSON.stringify(state))
+  } catch (err) {
+    console.log(err)
+  }
+}
+
+function getState() {
+  var item = localStorage.getItem('lingvo.tv')
+  if (item) return JSON.parse(item)
+}
 
 function toArray(obj) {
   return [].slice.call(obj)
+}
+
+function $(name, props) {
+  var el = document.createElement(name)
+  if (props) {
+    for (var prop in props) {
+      el[prop] = props[prop]
+    }
+  }
+  return el
+}
+
+function on(el, event, handler) {
+  el.addEventListener(event, handler, false)
 }
 
 function createView() {
   var cursor = -1
   var history = []
 
-  var app = document.createElement('div')
-  app.className = 'app'
-  document.body.appendChild(app)
+  var app = document.body.appendChild($('div', {className: 'app'}))
+  var body = app.appendChild($('div', {className: 'body'}))
 
-  var subtitles = (function() {
-    var subtitles = document.createElement('div')
-    subtitles.className = 'subtitles'
-    app.appendChild(subtitles)
+  var subtitles = (function(parent) {
+    var subtitles = parent.appendChild($('div', {className: 'subtitles'}))
 
     function select(node) {
       if (!node.classList.contains('word')) return false
@@ -33,50 +73,81 @@ function createView() {
       }).join(' ')
     }
 
-    subtitles.addEventListener('click', function(e) {
+    on(subtitles, 'click', function(e) {
       var node = e.target
       if (!select(node)) return
       var words = getWords(node)
       if (words) translate(words, renderTranslation)
     })
+
     return subtitles
-  }())
+  }(body))
 
-  var translation = (function() {
-    var translation = document.createElement('div')
-    translation.className = 'translation'
-    app.appendChild(translation)
-    return translation
-  }())
+  var translation = body.appendChild($('div', {className: 'translation'}))
 
-  var nav = (function() {
-    var autoSync
+  var menu = (function(parent) {
+    var menu =  body.appendChild($('div', {className: 'menu'}))
 
-    var nav = document.createElement('div')
-    nav.className = 'nav'
-    app.appendChild(nav)
-    var prev = document.createElement('button')
-    prev.className = 'prev'
-    nav.appendChild(prev)
+    var langOptions = conf.languages.map(function(lang) {
+      return '<option value="'+ lang.a+ '">'+ lang.f +'</option>'
+    }).join('')
 
-    var sync = document.createElement('button')
-    sync.className = 'sync'
-    nav.appendChild(sync)
-    setAutoSync(true)
+    var section = menu.appendChild($('section'))
+    section.appendChild($('label', {textContent: 'Subtitles Language'}))
+    var subLang = section.appendChild($('select', {
+      innerHTML: langOptions,
+      value: state.subLang
+    }))
+    on(subLang, 'change', function() {
+      setState({subLang: subLang.value})
+    })
 
-    sync.addEventListener('click', function() {
+    var section = menu.appendChild($('section'))
+    section.appendChild($('label', {
+      textContent: 'Translation Language'
+    }))
+    var trLang = section.appendChild($('select', {
+      innerHTML: langOptions,
+      value: state.trLang
+    }))
+    on(trLang, 'change', function() {
+      setState({trLang: trLang.value})
+    })
+  }(body))
+
+  var nav = (function(parent) {
+    var nav = parent.appendChild($('div', {className: 'nav'}))
+    var prev = nav.appendChild($('button', {className: 'prev'}))
+    var sync = nav.appendChild($('button', {className: 'sync'}))
+    var next = nav.appendChild($('button', {className: 'next'}))
+    var menu = nav.appendChild($('button', {className: 'menu'}))
+
+    function setAutoSync(value) {
+      setState({autoSync: value})
+      sync.classList[value ? 'add' : 'remove']('selected')
+    }
+
+    function hideMenu() {
+      parent.classList.remove('menu')
+      menu.classList.remove('selected')
+    }
+
+    on(sync, 'click', function() {
+      // Already on, switch off.
+      if (state.autoSync) {
+        return setAutoSync(false)
+      }
       document.body.scrollTop = 0
       setAutoSync(true)
       cursor = history.length - 1
       if (history[cursor]) renderSubtitle(history[cursor].original)
+      hideMenu()
     })
 
-    var next = document.createElement('button')
-    next.className = 'next'
-    nav.appendChild(next)
+    setAutoSync(state.autoSync)
 
     ;[prev, next].forEach(function(button) {
-      button.addEventListener('click', function(e) {
+      on(button, 'click', function(e) {
         if (e.target === prev) {
           cursor--
           if (cursor < 0) cursor = 0
@@ -87,28 +158,19 @@ function createView() {
         setAutoSync(false)
 
         if (history[cursor]) renderSubtitle(history[cursor].original)
+        hideMenu()
       })
     })
 
-    function setAutoSync(value) {
-      autoSync = value
-      if (value) sync.classList.add('selected')
-      else sync.classList.remove('selected')
-    }
-
-    function getAutoSync() {
-      return autoSync
-    }
-
-    return {
-      setAutoSync: setAutoSync,
-      getAutoSync: getAutoSync
-    }
-  }())
+    on(menu, 'click', function() {
+      parent.classList.toggle('menu')
+      menu.classList.toggle('selected')
+    })
+  }(app))
 
   function onSubtitle(data) {
     history.push(data)
-    if (nav.getAutoSync()) {
+    if (state.autoSync) {
       cursor = history.length - 1
       renderSubtitle(data.original)
     }
@@ -147,7 +209,7 @@ function createView() {
 }
 
 function connect(view) {
-  var socket = io.connect(baseUrl, {
+  var socket = io.connect(conf.baseUrl, {
     transports: ['polling']
   })
 
@@ -161,7 +223,7 @@ function connect(view) {
 }
 
 function translate(text, callback) {
-  var url = baseUrl + '/translation/' + encodeURI(text)
+  var url = conf.baseUrl + '/translation/' + state.subLang + '-' + state.trLang + '/' + encodeURI(text)
   fetch(url)
     .then(function(res) {
       return res.text()
