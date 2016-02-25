@@ -19,7 +19,6 @@ function assign(a, b) {
 
 function setState(nextState) {
   assign(state, nextState)
-  console.log('setState', state)
   try {
     localStorage.setItem('lingvo.tv', JSON.stringify(state))
   } catch (err) {
