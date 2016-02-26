@@ -46,6 +46,9 @@ html, body {
   width: 100%;
 }
 
+.body .menu .auth {
+}
+
 /* Navigation */
 .nav {
   position: fixed;
