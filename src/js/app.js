@@ -48,6 +48,7 @@ function $(nameOrEl, props, children) {
   var el = typeof nameOrEl === 'string' ? document.createElement(nameOrEl) : nameOrEl
 
   if (children) {
+    el.innerHTML = ''
     for (var i = 0; i < children.length; i++) {
       el.appendChild(children[i])
     }
