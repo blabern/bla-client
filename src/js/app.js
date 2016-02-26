@@ -82,12 +82,6 @@ function createApp() {
       onclick: onSelectWord
     })
 
-    function select(node) {
-      if (!node.classList.contains('word')) return false
-      node.classList.toggle('selected')
-      return true
-    }
-
     function getWords() {
       return toArray(node.querySelectorAll('.selected')).map(function(node) {
         // Remove spaces and punktuation marks.
@@ -96,7 +90,8 @@ function createApp() {
     }
 
     function onSelectWord(e) {
-      if (!select(e.target)) return
+      if (!e.target.classList.contains('word')) return
+      e.target.classList.toggle('selected')
       var words = getWords()
       if (words) props.onSelectWords(words)
     }
