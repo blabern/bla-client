@@ -140,10 +140,11 @@ function createApp() {
 
     function updateDownVisibility() {
       // Scrolled to the bottom.
-      var nextAutoScroll = Math.abs(node.scrollTop - (node.scrollHeight - node.offsetHeight)) < 5
+      var distance = node.scrollTop - (node.scrollHeight - node.offsetHeight)
+      var nextAutoScroll = distance > -20
       if (nextAutoScroll !== autoScroll) {
         autoScroll = nextAutoScroll
-        down.classList[autoScroll ? 'add' : 'remove']('hidden')
+        down.classList[autoScroll ? 'remove' : 'add']('upscaled')
       }
     }
 
@@ -182,7 +183,7 @@ function createApp() {
 
     function render(data) {
       return $(node, {onscroll: onScroll}, [
-        down = $('button', {className: 'down-button hidden', onclick: onScrollToEnd}),
+        down = $('button', {className: 'down-button', onclick: onScrollToEnd}),
         renderSection(data.text)
       ])
     }
