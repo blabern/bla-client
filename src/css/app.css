@@ -1,97 +1,109 @@
 html, body {
+  overflow: hidden;
   background: #111;
-  color: white;
+}
+button {
+  -webkit-user-select: none;
+  outline: none;
+  border: none;
+  background: no-repeat center;
+  cursor: pointer;
 }
 .app * {
   box-sizing: border-box;
 }
 
-/* Translations body */
-.body .subtitles {
-  text-align: center;
-  font-size: 2.5em;
+.screen {
   padding: 10px;
-  margin-bottom: 10px;
-  border-bottom: 1px solid #fff;
+  padding-bottom: 70px;
+  position: absolute;
+  overflow: hidden;
+  overflow-y: scroll;
+  bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  -webkit-overflow-scrolling: touch;
+  background: #111;
+  color: white;
 }
-.body .subtitles p {
+
+/* Translations body */
+.stream {
+}
+.stream > section {
+  border-bottom: 1px solid #fff;
+  padding: 5px 0;
+}
+.stream > section.second .subtitle {
+  color: #C6E6F3;
+}
+.subtitle p {
+  text-align: center;
+  font-size: 2em;
   margin: 0;
   -webkit-user-select: none;
 }
-.body .subtitles .word {
+.subtitle .word {
   cursor: pointer;
 }
-.body .subtitles .word.selected {
+.subtitle .word.selected {
   background: #26ADE4;
   cursor: pointer;
 }
-.body .translation {
-  padding: 10px 10px 70px 10px;
+.translation {
 }
-.body .translation section p {
+.translation section p {
   margin-left: 20px;
 }
-
-/* Menu body */
-.body .menu {
-  display: none;
-  padding: 10px;
+.stream .down-button {
+  position: fixed;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  bottom: 70px;
+  left: 50%;
+  margin-left: -25px;
+  background-image: url(../img/icons/arrow-down2.svg);
+  background-color: rgba(17,17,17, 0.8);
+  border: 1px solid #fff;
 }
-.body .menu section {
+/* Menu body */
+.menu {
+}
+.menu section {
   margin-bottom: 20px;
 }
-.body .menu label,
-.body .menu select {
+.menu label,
+.menu select {
   display: block;
   width: 100%;
 }
 
-.body .menu .auth {
+.menu .auth {
 }
 
 /* Navigation */
 .nav {
-  position: fixed;
-  width: 100%;
+  position: absolute;
+  left: 0;
+  right: 0;
   bottom: 0;
   padding: 5px 10px;
   text-align: center;
   background: rgba(17,17,17, 0.8);
 }
 .nav button{
-  width: 60px;
-  height: 60px;
-  -webkit-user-select: none;
-  outline: none;
-  border: none;
-  background: no-repeat center;
+  width: 50px;
+  height: 50px;
   background-size: 70%;
   border-radius: 50%;
-  cursor: pointer;
 }
 .nav button:active,
 .nav button.selected {
   background-color: #26ADE4;
 }
-.nav .prev {
-  background-image: url(../img/icons/circle-left.svg);
-}
-.nav .sync {
-  margin: 0 20px;
-  background-image: url(../img/icons/sync.svg);
-}
-.nav .next {
-  background-image: url(../img/icons/circle-right.svg);
-}
-.nav .menu {
+.nav .menu-button {
   float: right;
   background-image: url(../img/icons/menu.svg);
-}
-
-.app.menu .subtitles,
-.app.menu .translation {
-  display: none;
-}
-.app.menu .menu {
-  display: block;
 }

@@ -6,15 +6,7 @@ var conf = {
   languages: [{a: 'en', f: 'English'}, {a: 'de', f: 'German'}, {a: 'ru', f: 'Russian'}, {a: 'es', f: 'Spanish'}, {a: 'it', f: 'Italian'}, {a: 'fr', f: 'French'}, {a: 'pl', f: 'Polnish'}, {a: 'tr', f: 'Turkish'}, {a: 'iw', f: 'Hebrew'}, {a: 'ar', f: 'Arabic'}]
 }
 
-var state = getState() || {
-  autoSync: true,
-  subLang: 'en',
-  trLang: 'en',
-  auth: undefined
-}
-
-var app
-var socket
+/* Utils */
 
 function assign(a, b) {
   for (var key in b) a[key] = b[key]
@@ -39,61 +31,127 @@ function toArray(obj) {
   return [].slice.call(obj)
 }
 
-function $(nameOrEl, props, children) {
+function removeNode(node) {
+  if (!node || !node.parentNode) return false
+  node.parentNode.removeChild(node)
+  return true
+}
+
+function $(nameOrNode, props, children) {
   if (Array.isArray(props)) {
     children = props
     props = null
   }
 
-  var el = typeof nameOrEl === 'string' ? document.createElement(nameOrEl) : nameOrEl
+  var node = typeof nameOrNode === 'string' ? document.createElement(nameOrNode) : nameOrNode
 
   if (children) {
-    el.innerHTML = ''
+    node.innerHTML = ''
     for (var i = 0; i < children.length; i++) {
-      el.appendChild(children[i])
+      node.appendChild(children[i])
     }
   }
 
   if (props) {
     for (var prop in props) {
+      if (prop === 'classes') {
+        node.className = props[prop].join(' ')
+      } else if (prop === 'dataset') {
+        for (var key in props[prop]) {
+          node.dataset[key] = props[prop][key]
+        }
       // Its a function call.
-      if (typeof el[prop] === 'function') {
-        el[prop].apply(el, props[prop])
+      } else if (typeof node[prop] === 'function') {
+        node[prop].apply(node, props[prop])
       } else {
-        el[prop] = props[prop]
+        node[prop] = props[prop]
       }
     }
   }
 
-  return el
+  return node
 }
+
+/* App */
+
+var app
+var socket
+var state = assign({
+  subLang: 'en',
+  trLang: 'en',
+  auth: undefined
+}, getState())
 
 function createApp() {
   var node = $('div', {className: 'app'})
-  var cursor = -1
-  var history = []
-  var subtitles
+  var stream
   var menu
-  var translation
 
-  function createSubtitles(props) {
+  function createStream(props) {
     var node = $('div', {
-      className: 'subtitles',
+      className: 'screen stream',
       onclick: onSelectWord
     })
+    var down
+    var first = false
+    var autoScroll = true
+    var sectionCounter = 0
 
-    function getWords() {
-      return toArray(node.querySelectorAll('.selected')).map(function(node) {
+    function onSelectWord(e) {
+      var node = e.target
+      if (!node.classList.contains('word')) return
+      node.classList.toggle('selected')
+      renderTranslation(node.closest('section'))
+    }
+
+    function onScrollToEnd() {
+      node.scrollTop = node.scrollHeight
+    }
+
+    function onScroll() {
+      updateDownVisibility()
+    }
+
+    // We need to reuse the instance if its in the same section.
+    var getTranslation = (function() {
+      var map = {}
+      return function(section) {
+        var key = section.dataset.key
+        if (!map[key]) map[key] = createTranslation()
+        return map[key]
+      }
+    }())
+
+    function renderTranslation(section) {
+      var words = getWords(section)
+      var translation = getTranslation(section)
+
+      if (!words) {
+        removeNode(translation.node)
+        return
+      }
+
+      translate(words, function(data) {
+        translation.render(data)
+        section.appendChild(translation.node)
+        setTimeout(updateDownVisibility, 100)
+      })
+    }
+
+    function updateDownVisibility() {
+      // Scrolled to the bottom.
+      var nextAutoScroll = Math.abs(node.scrollTop - (node.scrollHeight - node.offsetHeight)) < 5
+      if (nextAutoScroll !== autoScroll) {
+        autoScroll = nextAutoScroll
+        down.classList[autoScroll ? 'add' : 'remove']('hidden')
+      }
+    }
+
+    function getWords(section) {
+      return toArray(section.querySelectorAll('.selected')).map(function(node) {
         // Remove spaces and punktuation marks.
         return node.textContent.replace(/\W/g, '')
       }).join(' ')
-    }
-
-    function onSelectWord(e) {
-      if (!e.target.classList.contains('word')) return
-      e.target.classList.toggle('selected')
-      var words = getWords()
-      if (words) props.onSelectWords(words)
     }
 
     function renderWords(text) {
@@ -104,16 +162,35 @@ function createApp() {
       }, [])
     }
 
-    function render(state) {
-      $(node, state.text.split('\n').map(function(line) {
-        return $('p', renderWords(line))
-      }))
-      return node
+    function renderSection(text) {
+      var lines = text.split('\n')
+      first = !first
+      return $('section', {
+          className: first ? 'first' : 'second',
+          dataset: {key: ++sectionCounter}
+        }, [
+        $('div', {className: 'subtitle'}, lines.map(function(line) {
+          return $('p', renderWords(line))
+        }))
+      ])
+    }
+
+    function append(data) {
+      node.appendChild(renderSection(data.text))
+      if (autoScroll) onScrollToEnd()
+    }
+
+    function render(data) {
+      return $(node, {onscroll: onScroll}, [
+        down = $('button', {className: 'down-button hidden', onclick: onScrollToEnd}),
+        renderSection(data.text)
+      ])
     }
 
     return {
       node: node,
-      render: render
+      render: render,
+      append: append
     }
   }
 
@@ -140,7 +217,7 @@ function createApp() {
   }
 
   function createMenu(props) {
-    var node = $('div', {className: 'menu'})
+    var node = $('div', {className: 'screen menu hidden'})
 
     function onChangeSubLang(e) {
       props.onChangeSubLang(e.target.value)
@@ -162,6 +239,10 @@ function createApp() {
       return props.languages.map(function(lang) {
         return $('option', {value: lang.a, textContent: lang.f})
       })
+    }
+
+    function toggle() {
+      node.classList.toggle('hidden')
     }
 
     function render() {
@@ -197,68 +278,25 @@ function createApp() {
 
     return {
       node: node,
-      render: render
+      render: render,
+      toggle: toggle
     }
   }
 
   function createNav(props) {
     var node = $('div', {className: 'nav'})
-    var sync
     var menu
 
-    function onSync() {
-      // Already on, switch off.
-      if (state.autoSync) {
-        return setAutoSync(false)
-      }
-      document.body.scrollTop = 0
-      setAutoSync(true)
-      cursor = history.length - 1
-      if (history[cursor]) subtitles.render({text: history[cursor].original})
-      hideMenu()
-    }
-
-    function onShowPrev(e) {
-      cursor--
-      if (cursor < 0) cursor = 0
-      updateSubtitles()
-    }
-
-    function onShowNext(e) {
-      cursor++
-      if (!history[cursor]) cursor = history.length - 1
-      updateSubtitles()
-    }
 
     function onToggleMenu() {
       props.onToggleMenu()
       menu.classList.toggle('selected')
     }
 
-    function updateSubtitles() {
-      setAutoSync(false)
-      if (history[cursor]) subtitles.render({text: history[cursor].original})
-      hideMenu()
-    }
-
-    function setAutoSync(value) {
-      setState({autoSync: value})
-      sync.classList[value ? 'add' : 'remove']('selected')
-    }
-
-    function hideMenu() {
-      props.onHideMenu()
-      menu.classList.remove('selected')
-    }
-
     function render() {
       $(node, [
-        $('button', {className: 'prev', onclick: onShowPrev}),
-        sync = $('button', {className: 'sync', onclick: onSync}),
-        $('button', {className: 'next', onclick: onShowNext}),
-        menu = $('button', {className: 'menu', onclick: onToggleMenu})
+        menu = $('button', {className: 'menu-button', onclick: onToggleMenu})
       ])
-      setAutoSync(state.autoSync)
       return node
     }
 
@@ -269,20 +307,11 @@ function createApp() {
   }
 
   function onSubtitle(data) {
-    history.push(data)
-    if (state.autoSync) {
-      cursor = history.length - 1
-      subtitles.render({text: data.original})
-    }
+    stream.append({text: data.original})
   }
 
   function render(state) {
-    subtitles = createSubtitles({
-      onSelectWords: function(words) {
-        translate(words, translation.render)
-      }
-    })
-    translation = createTranslation()
+    stream = createStream()
     menu = createMenu({
       languages: conf.languages,
       onChangeSubLang: function(value) {
@@ -297,21 +326,13 @@ function createApp() {
     })
     menu.render()
     var nav = createNav({
-      onHideMenu: function() {
-        node.classList.remove('menu')
-      },
-      onToggleMenu: function() {
-        node.classList.toggle('menu')
-      }
+      onToggleMenu: menu.toggle
     })
     nav.render()
 
     $(node, [
-      $('div', {className: 'body'}, [
-        subtitles.render({text: state.subtitle}),
-        translation.node,
-        menu.node
-      ]),
+      stream.render({text: state.subtitle}),
+      menu.node,
       nav.node
     ])
 
