@@ -43,6 +43,7 @@ button {
   font-size: 2em;
   margin: 0;
   -webkit-user-select: none;
+  white-space: pre-wrap;
 }
 .subtitle .word {
   cursor: pointer;

@@ -157,7 +157,7 @@ function createApp() {
     function renderWords(text) {
       return text.split(' ').reduce(function(words, word) {
         words.push($('span', {className: 'word', textContent: word}))
-        words.push($('span', {textContent: '  '}))
+        words.push($('span', {textContent: ' '}))
         return words
       }, [])
     }
