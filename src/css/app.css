@@ -42,8 +42,10 @@ input {
 .stream {
 }
 .stream > section {
-  border-bottom: 1px solid #fff;
   padding: 5px 0;
+}
+.stream > section:not(:first-child) {
+  border-top: 1px solid rgba(255, 255, 255, 0.5);
 }
 .stream > section.second .subtitle {
   color: #C6E6F3;
@@ -100,6 +102,7 @@ input {
 }
 .menu hr {
   margin-bottom: 20px;
+  opacity: 0.5;
 }
 
 /* Auth */
@@ -110,7 +113,7 @@ input {
   position: absolute;
   left: 0;
   right: 0;
-  top: 20%;
+  top: 10%;
 }
 .auth label {
   display: block;
@@ -131,17 +134,20 @@ input {
 
 /* Navigation */
 .nav {
+  display: flex;
+  justify-content: space-around;
   position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 5px 10px;
+  padding: 10px 0;
   text-align: center;
-  background: rgba(17,17,17, 0.8);
+  background: rgba(0, 0, 0, 0.8);
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
 }
 .nav button{
-  width: 50px;
-  height: 50px;
+  width: 44px;
+  height: 44px;
   background-size: 70%;
   border-radius: 50%;
 }
@@ -149,10 +155,12 @@ input {
 .nav button.selected {
   background-color: #26ADE4;
 }
-.nav .menu-button {
-  float: right;
-  background-image: url(../img/icons/menu.svg);
-}
 .nav .stream-button {
   background-image: url(../img/icons/podcast.svg);
+}
+.nav .auth-button {
+  background-image: url(../img/icons/unlocked.svg);
+}
+.nav .menu-button {
+  background-image: url(../img/icons/cog.svg);
 }

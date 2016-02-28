@@ -157,6 +157,7 @@ function createStream(props) {
 
     if (!words) {
       removeNode(translation.node)
+      scrollController.check()
       return
     }
 
@@ -260,10 +261,6 @@ function createMenu(props) {
     props.onChangeTrLang(e.target.value)
   }
 
-  function onAuthorize() {
-    props.onAuthorize()
-  }
-
   function renderLangOptions() {
     return props.languages.map(function(lang) {
       return $('option', {value: lang.a, textContent: lang.f})
@@ -294,10 +291,7 @@ function createMenu(props) {
           onchange: onChangeTrLang
         }, renderLangOptions())
       ]),
-      $('hr'),
-      $('section', [
-        $('button', {textContent: 'Re-enter Auth Code', onclick: onAuthorize})
-      ])
+      $('hr')
     ])
 
     return node
@@ -338,6 +332,7 @@ function createAuth(props) {
   function show() {
     node.classList.remove('hidden')
     input.focus()
+    document.body.scrollTop = 0
   }
 
   function render() {
@@ -395,13 +390,17 @@ function createNav(props) {
 
   function render() {
     $(node, [
-      items.menu = $('button', {
-        className: 'icon-button menu-button',
-        onclick: onShow.bind(null, 'menu')
+      items.auth = $('button', {
+        className: 'icon-button auth-button',
+        onclick: onShow.bind(null, 'auth')
       }),
       items.stream = $('button', {
         className: 'icon-button stream-button',
         onclick: onShow.bind(null, 'stream')
+      }),
+      items.menu = $('button', {
+        className: 'icon-button menu-button',
+        onclick: onShow.bind(null, 'menu')
       })
     ])
     return node
@@ -476,9 +475,6 @@ function createApp(props) {
       },
       onChangeTrLang: function(value) {
         setState({trLang: value})
-      },
-      onAuthorize: function() {
-        controller.show(auth)
       }
     })
     menu.render()
@@ -490,6 +486,8 @@ function createApp(props) {
             return controller.show(menu)
           case 'stream':
             return controller.show(stream)
+          case 'auth':
+            return controller.show(auth)
         }
       }
     })
