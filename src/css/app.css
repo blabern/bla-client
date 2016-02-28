@@ -19,14 +19,24 @@ input {
 }
 .no-spinner::-webkit-outer-spin-button,
 .no-spinner::-webkit-inner-spin-button {
-    /* display: none; <- Crashes Chrome on hover */
-    -webkit-appearance: none;
-    margin: 0; /* <-- Apparently some margin are still there even though it's hidden */
+  /* display: none; <- Crashes Chrome on hover */
+  -webkit-appearance: none;
+  margin: 0; /* <-- Apparently some margin are still there even though it's hidden */
+}
+.no-spinner {
+  -moz-appearance: textfield;
+}
+
+.app {
+  position: absolute;
+  bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
 }
 
 .screen {
   padding: 10px;
-  padding-bottom: 70px;
   position: absolute;
   overflow: hidden;
   overflow-y: scroll;
@@ -37,6 +47,12 @@ input {
   -webkit-overflow-scrolling: touch;
   background: #111;
   color: white;
+}
+/* In desktop FF padding-bottom of absolute container doesn't work */
+.screen::after {
+  content: "";
+  display: block;
+  height: 70px;
 }
 
 /* Stream */
@@ -128,6 +144,7 @@ input {
   text-align: left;
   border: 2px solid transparent;
   border-radius: 5px;
+  width:3.2em;
 }
 .auth input:invalid {
   border-color: red;
