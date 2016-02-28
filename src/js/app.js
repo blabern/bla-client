@@ -134,6 +134,7 @@ function createStream(props) {
   }
 
   function onScrollChange(state) {
+    autoScroll = state.isAtBottom
     jumper.classList[state.isAtBottom ? 'remove' : 'add']('show')
   }
 
