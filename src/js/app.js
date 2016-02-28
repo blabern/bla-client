@@ -431,7 +431,7 @@ function createApp(props) {
         case menu:
           return nav.select('menu')
         case auth:
-          return nav.unselect()
+          return nav.select('auth')
       }
     }
   })
@@ -581,7 +581,7 @@ function createApi(props) {
 }
 
 
-;(function init() {
+function init() {
   MBP.enableActive()
   FastClick.attach(document.body)
   var app
@@ -607,5 +607,7 @@ function createApi(props) {
   app.render({subtitle: 'Play movie to receive subtitles'})
 
   document.body.appendChild(app.node)
-}())
+}
+
+window.addEventListener('load', init)
 }())
