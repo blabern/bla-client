@@ -6,25 +6,14 @@ var conf = {
   languages: [{a: 'en', f: 'English'}, {a: 'de', f: 'German'}, {a: 'ru', f: 'Russian'}, {a: 'es', f: 'Spanish'}, {a: 'it', f: 'Italian'}, {a: 'fr', f: 'French'}, {a: 'pl', f: 'Polnish'}, {a: 'tr', f: 'Turkish'}, {a: 'iw', f: 'Hebrew'}, {a: 'ar', f: 'Arabic'}]
 }
 
+var log = console.log.bind(console)
+var error = console.error.bind(console)
+
 /* Utils */
 
 function assign(a, b) {
   for (var key in b) a[key] = b[key]
   return a
-}
-
-function setState(nextState) {
-  assign(state, nextState)
-  try {
-    localStorage.setItem('lingvo.tv', JSON.stringify(state))
-  } catch (err) {
-    console.log(err)
-  }
-}
-
-function getState() {
-  var item = localStorage.getItem('lingvo.tv')
-  if (item) return JSON.parse(item)
 }
 
 function toArray(obj) {
@@ -74,22 +63,33 @@ function $(nameOrNode, props, children) {
 
 /* App */
 
-var app
-var socket
 var state = assign({
   subLang: 'en',
   trLang: 'en',
   auth: undefined
 }, getState())
 
-function createApp() {
+function setState(nextState) {
+  assign(state, nextState)
+  try {
+    localStorage.setItem('lingvo.tv', JSON.stringify(state))
+  } catch (err) {
+    error(err)
+  }
+}
+
+function getState() {
+  var item = localStorage.getItem('lingvo.tv')
+  if (item) return JSON.parse(item)
+}
+
+function createApp(props) {
   var node = $('div', {className: 'app'})
   var stream
-  var menu
 
   function createStream(props) {
     var node = $('div', {
-      className: 'screen stream',
+      className: 'screen stream hidden',
       onclick: onSelectWord
     })
     var down
@@ -131,7 +131,7 @@ function createApp() {
         return
       }
 
-      translate(words, function(data) {
+      props.onTranslate(words, function(data) {
         translation.render(data)
         section.appendChild(translation.node)
         setTimeout(updateDownVisibility, 100)
@@ -181,9 +181,17 @@ function createApp() {
       if (autoScroll) onScrollToEnd()
     }
 
+    function show() {
+      node.classList.remove('hidden')
+    }
+
+    function hide() {
+      node.classList.add('hidden')
+    }
+
     function render(data) {
       return $(node, {onscroll: onScroll}, [
-        down = $('button', {className: 'down-button', onclick: onScrollToEnd}),
+        down = $('button', {className: 'icon-button down-button', onclick: onScrollToEnd}),
         renderSection(data.text)
       ])
     }
@@ -191,17 +199,19 @@ function createApp() {
     return {
       node: node,
       render: render,
-      append: append
+      append: append,
+      show: show,
+      hide: hide
     }
   }
 
   function createTranslation() {
     var node = $('div', {className: 'translation'})
 
-    function render(state) {
+    function render(data) {
       $(node, [
-        $('h2', {textContent: state.original + ' - ' + state.translation.main}),
-        $('div', state.translation.others.map(function(tr) {
+        $('h2', {textContent: data.original + ' - ' + data.translation.main}),
+        $('div', data.translation.others.map(function(tr) {
           return $('section', [
             $('header', {textContent: tr.type}),
             $('p', {innerHTML: tr.translations.join('<br />')})
@@ -228,12 +238,8 @@ function createApp() {
       props.onChangeTrLang(e.target.value)
     }
 
-    function onChangeAuth(e) {
-      var value = e.target.value
-      e.target.value = value.substr(0, 3)
-      if (value.length === 4) {
-        props.onChangeAuth(value)
-      }
+    function onAuthorize() {
+      props.onAuthorize()
     }
 
     function renderLangOptions() {
@@ -242,8 +248,12 @@ function createApp() {
       })
     }
 
-    function toggle() {
-      node.classList.toggle('hidden')
+    function show() {
+      node.classList.remove('hidden')
+    }
+
+    function hide() {
+      node.classList.add('hidden')
     }
 
     function render() {
@@ -262,15 +272,9 @@ function createApp() {
             onchange: onChangeTrLang
           }, renderLangOptions())
         ]),
+        $('hr'),
         $('section', [
-          $('label', {textContent: 'Auth Code'}),
-          $('input', {
-            type: 'number',
-            className: 'auth',
-            min: 0,
-            max: 9999,
-            onkeypress: onChangeAuth
-          })
+          $('button', {textContent: 'Re-enter Auth Code', onclick: onAuthorize})
         ])
       ])
 
@@ -280,30 +284,119 @@ function createApp() {
     return {
       node: node,
       render: render,
-      toggle: toggle
+      hide: hide,
+      show: show
+    }
+  }
+
+  function createAuth(props) {
+    var node = $('div', {className: 'screen auth hidden'})
+    var input
+    var length = 4
+
+    function onSubmit(e) {
+      e.preventDefault()
+      props.onAuth(input.value)
+    }
+
+    // Length validation in mobile safari doesn't work.
+    function onKeyUp() {
+      if (input.value.length === length) {
+        input.setCustomValidity('')
+      } else {
+        input.setCustomValidity('Required '+ length +' numbers.')
+      }
+    }
+
+    function hide() {
+      input.blur()
+      node.classList.add('hidden')
+    }
+
+    function show() {
+      node.classList.remove('hidden')
+      input.focus()
+    }
+
+    function checkValidity() {
+      var isValid = input.checkValidity()
+      if (isValid) props.onAuth(input.value)
+      return isValid
+    }
+
+    function render() {
+      $(node, [
+        $('form', {onsubmit: onSubmit}, [
+          $('label', {textContent: 'Auth Code'}),
+          input = $('input', {
+            type: 'number',
+            className: 'auth no-spinner',
+            min: 1,
+            max: 9999,
+            size: length,
+            value: props.value || '',
+            required: true,
+            autofocus: true,
+            onkeyup: onKeyUp
+          }),
+          $('p', {textContent: 'Click on Extension to get the code.'})
+        ])
+      ])
+
+      return node
+    }
+
+    return {
+      node: node,
+      render: render,
+      hide: hide,
+      show: show,
+      checkValidity: checkValidity
     }
   }
 
   function createNav(props) {
     var node = $('div', {className: 'nav'})
-    var menu
+    var items = {}
+    var selected
 
+    function onShow(name) {
+      if (selected === items[name]) return
+      props.onShow(name)
+      select(name)
+    }
 
-    function onToggleMenu() {
-      props.onToggleMenu()
-      menu.classList.toggle('selected')
+    function select(name) {
+      unselect()
+      selected = items[name]
+      selected.classList.add('selected')
+    }
+
+    function unselect() {
+      if (!selected) return
+      selected.classList.remove('selected')
+      selected = null
     }
 
     function render() {
       $(node, [
-        menu = $('button', {className: 'menu-button', onclick: onToggleMenu})
+        items.menu = $('button', {
+          className: 'icon-button menu-button',
+          onclick: onShow.bind(null, 'menu')
+        }),
+        items.stream = $('button', {
+          className: 'icon-button stream-button',
+          onclick: onShow.bind(null, 'stream')
+        })
       ])
       return node
     }
 
     return {
       node: node,
-      render: render
+      render: render,
+      select: select,
+      unselect: unselect
     }
   }
 
@@ -311,9 +404,39 @@ function createApp() {
     stream.append({text: data.original})
   }
 
-  function render(state) {
-    stream = createStream()
-    menu = createMenu({
+  function createController(props) {
+    var active
+
+    function show(view) {
+      if (view === active) return
+      if (active) active.hide()
+      view.show()
+      active = view
+      props.onShow(view)
+    }
+
+    return {
+      show: show
+    }
+  }
+
+  function render(data) {
+    var controller = createController({
+      onShow: function(inst) {
+        switch (inst) {
+          case stream:
+            return nav.select('stream')
+          case menu:
+            return nav.select('menu')
+          case auth:
+            return nav.unselect()
+        }
+      }
+    })
+
+    stream = createStream({onTranslate: props.onTranslate})
+
+    var menu = createMenu({
       languages: conf.languages,
       onChangeSubLang: function(value) {
         setState({subLang: value})
@@ -321,19 +444,41 @@ function createApp() {
       onChangeTrLang: function(value) {
         setState({trLang: value})
       },
-      onChangeAuth: function(value) {
-        setState({auth: value})
+      onAuthorize: function() {
+        controller.show(auth)
       }
     })
     menu.render()
+
     var nav = createNav({
-      onToggleMenu: menu.toggle
+      onShow: function(name) {
+        switch (name) {
+          case 'menu':
+            return controller.show(menu)
+          case 'stream':
+            return controller.show(stream)
+        }
+      }
     })
     nav.render()
 
+    var auth = createAuth({
+      value: state.auth,
+      onAuth: function(value) {
+        setState({auth: value})
+        controller.show(stream)
+        props.onAuth(value)
+      }
+    })
+    auth.render()
+    if (!auth.checkValidity()) {
+      controller.show(auth)
+    }
+
     $(node, [
-      stream.render({text: state.subtitle}),
+      stream.render({text: data.subtitle}),
       menu.node,
+      auth.node,
       nav.node
     ])
 
@@ -347,44 +492,69 @@ function createApp() {
   }
 }
 
-function connect() {
-  var socket = io.connect(conf.baseUrl, {
-    transports: ['polling']
-  })
+function createApi(props) {
+  var socket
 
-  socket.on('connected', function() {
-    console.log('Connected.')
-  })
+  function connect() {
+    socket = io.connect(conf.baseUrl, {
+      transports: ['polling']
+    })
 
-  socket.on('subtitle', app.onSubtitle)
+    socket.on('connect', function() {
+      log('Socket connected.')
+    })
 
-  return socket
+    socket.on('authorized', function(code) {
+      log('Connection authorized', code)
+    })
+
+    socket.on('subtitle', props.onSubtitle)
+
+    return socket
+  }
+
+  function auth(code) {
+    socket.emit('authorize', code)
+  }
+
+  function translate(text, callback) {
+    var url = conf.baseUrl + '/translation/' + state.subLang + '-' + state.trLang + '/' + encodeURI(text)
+    fetch(url)
+      .then(function(res) {
+        return res.text()
+      })
+      .then(function(text) {
+        callback(JSON.parse(text))
+      })
+      .catch(error)
+  }
+
+  return {
+    connect: connect,
+    translate: translate,
+    auth: auth
+  }
 }
 
-function translate(text, callback) {
-  var url = conf.baseUrl + '/translation/' + state.subLang + '-' + state.trLang + '/' + encodeURI(text)
-  fetch(url)
-    .then(function(res) {
-      return res.text()
-    })
-    .then(function(text) {
-      callback(JSON.parse(text))
-    })
-    .catch(function(err) {
-      console.log(err)
-    })
-}
 
 ;(function init() {
-  MBP.scaleFix()
-  MBP.hideUrlBarOnLoad()
-  MBP.listenForGhostClicks()
   FastClick.attach(document.body)
-  app = createApp()
+
+  var api = createApi({
+    onSubtitle: function(data) {
+      app.onSubtitle(data)
+    }
+  })
+
+  var app = createApp({
+    onTranslate: api.translate,
+    onAuth: api.auth
+  })
+
+  api.connect()
   // People don't expect that they receive subtitles only if they play the movie.
   app.render({subtitle: 'Play movie to receive subtitles'})
+
   document.body.appendChild(app.node)
-  // if (state.auth) socket = connect()
-  socket = connect()
 }())
 }())

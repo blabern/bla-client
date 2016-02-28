@@ -2,15 +2,25 @@ html, body {
   overflow: hidden;
   background: #111;
 }
-button {
+.icon-button {
   -webkit-user-select: none;
   outline: none;
   border: none;
   background: no-repeat center;
   cursor: pointer;
 }
+input {
+  outline: none;
+  border: 1px solid transparent;
+}
 .app * {
   box-sizing: border-box;
+}
+.no-spinner::-webkit-outer-spin-button,
+.no-spinner::-webkit-inner-spin-button {
+    /* display: none; <- Crashes Chrome on hover */
+    -webkit-appearance: none;
+    margin: 0; /* <-- Apparently some margin are still there even though it's hidden */
 }
 
 .screen {
@@ -28,7 +38,7 @@ button {
   color: white;
 }
 
-/* Translations body */
+/* Stream */
 .stream {
 }
 .stream > section {
@@ -75,7 +85,7 @@ button {
 .stream .down-button.upscaled {
   transform: scale(1);
 }
-/* Menu body */
+/* Menu */
 .menu {
 }
 .menu section {
@@ -86,8 +96,35 @@ button {
   display: block;
   width: 100%;
 }
+.menu hr {
+  margin-bottom: 20px;
+}
 
-.menu .auth {
+/* Auth */
+.auth {
+  text-align: center;
+}
+.auth form {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 20%;
+}
+.auth label {
+  display: block;
+  font-size: 2em;
+  line-height: 2;
+}
+.auth input {
+  font-size: 3em;
+  line-height: 1.3;
+  padding: 0 20px;
+  text-align: left;
+  border: 2px solid transparent;
+  border-radius: 5px;
+}
+.auth input:invalid {
+  border-color: red;
 }
 
 /* Navigation */
@@ -113,4 +150,7 @@ button {
 .nav .menu-button {
   float: right;
   background-image: url(../img/icons/menu.svg);
+}
+.nav .stream-button {
+  background-image: url(../img/icons/podcast.svg);
 }
