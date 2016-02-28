@@ -2,7 +2,7 @@
 
 var conf = {
   baseUrl: 'http://api.lingvo.tv',
-  //baseUrl: 'http://localhost:3000',
+  // baseUrl: 'http://localhost:3000',
   languages: [{a: 'en', f: 'English'}, {a: 'de', f: 'German'}, {a: 'ru', f: 'Russian'}, {a: 'es', f: 'Spanish'}, {a: 'it', f: 'Italian'}, {a: 'fr', f: 'French'}, {a: 'pl', f: 'Polnish'}, {a: 'tr', f: 'Turkish'}, {a: 'iw', f: 'Hebrew'}, {a: 'ar', f: 'Arabic'}]
 }
 
@@ -86,6 +86,8 @@ function getState() {
 function createApp(props) {
   var node = $('div', {className: 'app'})
   var stream
+  var auth
+  var controller
 
   function createStream(props) {
     var node = $('div', {
@@ -296,7 +298,7 @@ function createApp(props) {
 
     function onSubmit(e) {
       e.preventDefault()
-      props.onAuth(input.value)
+      props.onAuthorize(input.value)
     }
 
     // Length validation in mobile safari doesn't work.
@@ -316,12 +318,6 @@ function createApp(props) {
     function show() {
       node.classList.remove('hidden')
       input.focus()
-    }
-
-    function checkValidity() {
-      var isValid = input.checkValidity()
-      if (isValid) props.onAuth(input.value)
-      return isValid
     }
 
     function render() {
@@ -350,8 +346,7 @@ function createApp(props) {
       node: node,
       render: render,
       hide: hide,
-      show: show,
-      checkValidity: checkValidity
+      show: show
     }
   }
 
@@ -404,6 +399,15 @@ function createApp(props) {
     stream.append({text: data.original})
   }
 
+  function onAuthorized() {
+    controller.show(stream)
+  }
+
+  function requestAuthorization() {
+    if (!state.auth) controller.show(auth)
+    else props.onAuthorize(state.auth)
+  }
+
   function createController(props) {
     var active
 
@@ -421,7 +425,7 @@ function createApp(props) {
   }
 
   function render(data) {
-    var controller = createController({
+    controller = createController({
       onShow: function(inst) {
         switch (inst) {
           case stream:
@@ -462,18 +466,15 @@ function createApp(props) {
     })
     nav.render()
 
-    var auth = createAuth({
+    auth = createAuth({
       value: state.auth,
-      onAuth: function(value) {
+      onAuthorize: function(value) {
         setState({auth: value})
         controller.show(stream)
-        props.onAuth(value)
+        props.onAuthorize(value)
       }
     })
     auth.render()
-    if (!auth.checkValidity()) {
-      controller.show(auth)
-    }
 
     $(node, [
       stream.render({text: data.subtitle}),
@@ -488,7 +489,9 @@ function createApp(props) {
   return {
     node: node,
     render: render,
-    onSubtitle: onSubtitle
+    onSubtitle: onSubtitle,
+    onAuthorized: onAuthorized,
+    requestAuthorization: requestAuthorization
   }
 }
 
@@ -504,16 +507,30 @@ function createApi(props) {
       log('Socket connected.')
     })
 
-    socket.on('authorized', function(code) {
-      log('Connection authorized', code)
+    socket.on('disconnect', function() {
+      log('Socket disconnected.')
     })
 
-    socket.on('subtitle', props.onSubtitle)
+    socket.on('authorized', function(code) {
+      log('Connection authorized:', code)
+      props.onAuthorized()
+    })
+
+    socket.on('subtitle', function(data) {
+      log('Received subtitle:', data)
+      props.onSubtitle(data)
+    })
+
+    socket.on('authRequest', function() {
+      log('Auth requested by server.')
+      props.onRequestAuth()
+    })
 
     return socket
   }
 
-  function auth(code) {
+  function authorize(code) {
+    log('Sending authorization code:', code)
     socket.emit('authorize', code)
   }
 
@@ -532,23 +549,29 @@ function createApi(props) {
   return {
     connect: connect,
     translate: translate,
-    auth: auth
+    authorize: authorize
   }
 }
 
 
 ;(function init() {
   FastClick.attach(document.body)
-
+  var app
   var api = createApi({
     onSubtitle: function(data) {
       app.onSubtitle(data)
+    },
+    onRequestAuth: function() {
+      app.requestAuthorization()
+    },
+    onAuthorized: function() {
+      app.onAuthorized()
     }
   })
 
-  var app = createApp({
+  app = createApp({
     onTranslate: api.translate,
-    onAuth: api.auth
+    onAuthorize: api.authorize
   })
 
   api.connect()
