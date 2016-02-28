@@ -582,6 +582,7 @@ function createApi(props) {
 
 
 ;(function init() {
+  MBP.enableActive()
   FastClick.attach(document.body)
   var app
   var api = createApi({
