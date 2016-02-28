@@ -64,6 +64,9 @@ input {
 .stream > section.second .subtitle {
   color: #C6E6F3;
 }
+.stream > section:last-child .subtitle {
+  color: yellow;
+}
 .subtitle p {
   text-align: center;
   font-size: 2em;
