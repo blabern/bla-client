@@ -44,9 +44,6 @@ input {
 .stream > section {
   padding: 5px 0;
 }
-.stream > section:not(:first-child) {
-  border-top: 1px solid rgba(255, 255, 255, 0.5);
-}
 .stream > section.second .subtitle {
   color: #C6E6F3;
 }
@@ -143,7 +140,7 @@ input {
   padding: 10px 0;
   text-align: center;
   background: rgba(0, 0, 0, 0.8);
-  border-top: 1px solid rgba(255, 255, 255, 0.3);
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
 }
 .nav button{
   width: 44px;
