@@ -68,7 +68,9 @@ input {
   margin-left: 20px;
 }
 
-.stream .down-button {
+/* Jumper */
+
+.jumper-button {
   position: fixed;
   width: 50px;
   height: 50px;
@@ -82,7 +84,7 @@ input {
   transition: transform 200ms;
   transform: scale(0);
 }
-.stream .down-button.upscaled {
+.jumper-button.show {
   transform: scale(1);
 }
 /* Menu */

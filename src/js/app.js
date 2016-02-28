@@ -83,317 +83,359 @@ function getState() {
   if (item) return JSON.parse(item)
 }
 
+function createScrollController(props) {
+  var node = props.node
+  var threshold = 20
+  var state = {
+    isAtBottom: undefined
+  }
+
+  function check() {
+    var distance = node.scrollTop - (node.scrollHeight - node.offsetHeight)
+    var isAtBottom = distance > -threshold
+    if (isAtBottom !== state.isAtBottom) {
+      state.isAtBottom = isAtBottom
+      props.onChange(state)
+    }
+  }
+
+  node.addEventListener('scroll', check)
+
+  return {
+    check: check
+  }
+}
+
+
+function createStream(props) {
+  var node = $('div', {
+    className: 'screen stream hidden',
+    onclick: onSelectWord
+  })
+  var jumper
+  var first = false
+  var autoScroll = true
+  var sectionCounter = 0
+
+  var scrollController = createScrollController({
+    node: node,
+    onChange: onScrollChange
+  })
+
+  function onSelectWord(e) {
+    var node = e.target
+    if (!node.classList.contains('word')) return
+    node.classList.toggle('selected')
+    renderTranslation(node.closest('section'))
+  }
+
+  function onScrollToEnd() {
+    scrollToEnd()
+  }
+
+  function onScrollChange(state) {
+    jumper.classList[state.isAtBottom ? 'remove' : 'add']('show')
+  }
+
+  function scrollToEnd() {
+    node.scrollTop = node.scrollHeight
+  }
+
+  // We need to reuse the instance if its in the same section.
+  var getTranslation = (function() {
+    var map = {}
+    return function(section) {
+      var key = section.dataset.key
+      if (!map[key]) map[key] = createTranslation()
+      return map[key]
+    }
+  }())
+
+  function renderTranslation(section) {
+    var words = getWords(section)
+    var translation = getTranslation(section)
+
+    if (!words) {
+      removeNode(translation.node)
+      return
+    }
+
+    props.onTranslate(words, function(data) {
+      translation.render(data)
+      section.appendChild(translation.node)
+      setTimeout(scrollController.check, 100)
+    })
+  }
+
+  function getWords(section) {
+    return toArray(section.querySelectorAll('.selected')).map(function(node) {
+      // Remove spaces and punktuation marks.
+      return node.textContent.replace(/\W/g, '')
+    }).join(' ')
+  }
+
+  function renderWords(text) {
+    return text.split(' ').reduce(function(words, word) {
+      words.push($('span', {className: 'word', textContent: word}))
+      words.push($('span', {textContent: ' '}))
+      return words
+    }, [])
+  }
+
+  function renderSection(text) {
+    var lines = text.split('\n')
+    first = !first
+    return $('section', {
+        className: first ? 'first' : 'second',
+        dataset: {key: ++sectionCounter}
+      }, [
+      $('div', {className: 'subtitle'}, lines.map(function(line) {
+        return $('p', renderWords(line))
+      }))
+    ])
+  }
+
+  function append(data) {
+    node.appendChild(renderSection(data.text))
+    if (autoScroll) scrollToEnd()
+  }
+
+  function show() {
+    node.classList.remove('hidden')
+  }
+
+  function hide() {
+    node.classList.add('hidden')
+  }
+
+  function render(data) {
+    return $(node, [
+      jumper = $('button', {
+        className: 'icon-button jumper-button',
+        onclick: onScrollToEnd
+      }),
+      renderSection(data.text)
+    ])
+  }
+
+  return {
+    node: node,
+    render: render,
+    append: append,
+    show: show,
+    hide: hide
+  }
+}
+
+function createTranslation() {
+  var node = $('div', {className: 'translation'})
+
+  function render(data) {
+    $(node, [
+      $('h2', {textContent: data.original + ' - ' + data.translation.main}),
+      $('div', data.translation.others.map(function(tr) {
+        return $('section', [
+          $('header', {textContent: tr.type}),
+          $('p', {innerHTML: tr.translations.join('<br />')})
+        ])
+      }))
+    ])
+    return node
+  }
+
+  return {
+    node: node,
+    render: render
+  }
+}
+
+function createMenu(props) {
+  var node = $('div', {className: 'screen menu hidden'})
+
+  function onChangeSubLang(e) {
+    props.onChangeSubLang(e.target.value)
+  }
+
+  function onChangeTrLang(e) {
+    props.onChangeTrLang(e.target.value)
+  }
+
+  function onAuthorize() {
+    props.onAuthorize()
+  }
+
+  function renderLangOptions() {
+    return props.languages.map(function(lang) {
+      return $('option', {value: lang.a, textContent: lang.f})
+    })
+  }
+
+  function show() {
+    node.classList.remove('hidden')
+  }
+
+  function hide() {
+    node.classList.add('hidden')
+  }
+
+  function render() {
+    $(node, [
+      $('section', [
+        $('label', {textContent: 'Subtitles Language'}),
+        $('select', {
+          value: state.subLang,
+          onchange: onChangeSubLang
+        }, renderLangOptions())
+      ]),
+      $('section', [
+        $('label', {textContent: 'Translation Language'}),
+        $('select', {
+          value: state.trLang,
+          onchange: onChangeTrLang
+        }, renderLangOptions())
+      ]),
+      $('hr'),
+      $('section', [
+        $('button', {textContent: 'Re-enter Auth Code', onclick: onAuthorize})
+      ])
+    ])
+
+    return node
+  }
+
+  return {
+    node: node,
+    render: render,
+    hide: hide,
+    show: show
+  }
+}
+
+function createAuth(props) {
+  var node = $('div', {className: 'screen auth hidden'})
+  var input
+  var length = 4
+
+  function onSubmit(e) {
+    e.preventDefault()
+    props.onAuthorize(input.value)
+  }
+
+  // Length validation in mobile safari doesn't work.
+  function onKeyUp() {
+    if (input.value.length === length) {
+      input.setCustomValidity('')
+    } else {
+      input.setCustomValidity('Required '+ length +' numbers.')
+    }
+  }
+
+  function hide() {
+    input.blur()
+    node.classList.add('hidden')
+  }
+
+  function show() {
+    node.classList.remove('hidden')
+    input.focus()
+  }
+
+  function render() {
+    $(node, [
+      $('form', {onsubmit: onSubmit}, [
+        $('label', {textContent: 'Auth Code'}),
+        input = $('input', {
+          type: 'number',
+          className: 'auth no-spinner',
+          min: 1,
+          max: 9999,
+          size: length,
+          value: props.value || '',
+          required: true,
+          autofocus: true,
+          onkeyup: onKeyUp
+        }),
+        $('p', {textContent: 'Click on Extension to get the code.'})
+      ])
+    ])
+
+    return node
+  }
+
+  return {
+    node: node,
+    render: render,
+    hide: hide,
+    show: show
+  }
+}
+
+function createNav(props) {
+  var node = $('div', {className: 'nav'})
+  var items = {}
+  var selected
+
+  function onShow(name) {
+    if (selected === items[name]) return
+    props.onShow(name)
+    select(name)
+  }
+
+  function select(name) {
+    unselect()
+    selected = items[name]
+    selected.classList.add('selected')
+  }
+
+  function unselect() {
+    if (!selected) return
+    selected.classList.remove('selected')
+    selected = null
+  }
+
+  function render() {
+    $(node, [
+      items.menu = $('button', {
+        className: 'icon-button menu-button',
+        onclick: onShow.bind(null, 'menu')
+      }),
+      items.stream = $('button', {
+        className: 'icon-button stream-button',
+        onclick: onShow.bind(null, 'stream')
+      })
+    ])
+    return node
+  }
+
+  return {
+    node: node,
+    render: render,
+    select: select,
+    unselect: unselect
+  }
+}
+
+
 function createApp(props) {
   var node = $('div', {className: 'app'})
   var stream
   var auth
+  var menu
+  var nav
   var controller
 
-  function createStream(props) {
-    var node = $('div', {
-      className: 'screen stream hidden',
-      onclick: onSelectWord
-    })
-    var down
-    var first = false
-    var autoScroll = true
-    var sectionCounter = 0
-
-    function onSelectWord(e) {
-      var node = e.target
-      if (!node.classList.contains('word')) return
-      node.classList.toggle('selected')
-      renderTranslation(node.closest('section'))
-    }
-
-    function onScrollToEnd() {
-      node.scrollTop = node.scrollHeight
-    }
-
-    function onScroll() {
-      updateDownVisibility()
-    }
-
-    // We need to reuse the instance if its in the same section.
-    var getTranslation = (function() {
-      var map = {}
-      return function(section) {
-        var key = section.dataset.key
-        if (!map[key]) map[key] = createTranslation()
-        return map[key]
-      }
-    }())
-
-    function renderTranslation(section) {
-      var words = getWords(section)
-      var translation = getTranslation(section)
-
-      if (!words) {
-        removeNode(translation.node)
-        return
-      }
-
-      props.onTranslate(words, function(data) {
-        translation.render(data)
-        section.appendChild(translation.node)
-        setTimeout(updateDownVisibility, 100)
-      })
-    }
-
-    function updateDownVisibility() {
-      // Scrolled to the bottom.
-      var distance = node.scrollTop - (node.scrollHeight - node.offsetHeight)
-      var nextAutoScroll = distance > -20
-      if (nextAutoScroll !== autoScroll) {
-        autoScroll = nextAutoScroll
-        down.classList[autoScroll ? 'remove' : 'add']('upscaled')
+  controller = createController({
+    onShow: function(inst) {
+      switch (inst) {
+        case stream:
+          return nav.select('stream')
+        case menu:
+          return nav.select('menu')
+        case auth:
+          return nav.unselect()
       }
     }
-
-    function getWords(section) {
-      return toArray(section.querySelectorAll('.selected')).map(function(node) {
-        // Remove spaces and punktuation marks.
-        return node.textContent.replace(/\W/g, '')
-      }).join(' ')
-    }
-
-    function renderWords(text) {
-      return text.split(' ').reduce(function(words, word) {
-        words.push($('span', {className: 'word', textContent: word}))
-        words.push($('span', {textContent: ' '}))
-        return words
-      }, [])
-    }
-
-    function renderSection(text) {
-      var lines = text.split('\n')
-      first = !first
-      return $('section', {
-          className: first ? 'first' : 'second',
-          dataset: {key: ++sectionCounter}
-        }, [
-        $('div', {className: 'subtitle'}, lines.map(function(line) {
-          return $('p', renderWords(line))
-        }))
-      ])
-    }
-
-    function append(data) {
-      node.appendChild(renderSection(data.text))
-      if (autoScroll) onScrollToEnd()
-    }
-
-    function show() {
-      node.classList.remove('hidden')
-    }
-
-    function hide() {
-      node.classList.add('hidden')
-    }
-
-    function render(data) {
-      return $(node, {onscroll: onScroll}, [
-        down = $('button', {className: 'icon-button down-button', onclick: onScrollToEnd}),
-        renderSection(data.text)
-      ])
-    }
-
-    return {
-      node: node,
-      render: render,
-      append: append,
-      show: show,
-      hide: hide
-    }
-  }
-
-  function createTranslation() {
-    var node = $('div', {className: 'translation'})
-
-    function render(data) {
-      $(node, [
-        $('h2', {textContent: data.original + ' - ' + data.translation.main}),
-        $('div', data.translation.others.map(function(tr) {
-          return $('section', [
-            $('header', {textContent: tr.type}),
-            $('p', {innerHTML: tr.translations.join('<br />')})
-          ])
-        }))
-      ])
-      return node
-    }
-
-    return {
-      node: node,
-      render: render
-    }
-  }
-
-  function createMenu(props) {
-    var node = $('div', {className: 'screen menu hidden'})
-
-    function onChangeSubLang(e) {
-      props.onChangeSubLang(e.target.value)
-    }
-
-    function onChangeTrLang(e) {
-      props.onChangeTrLang(e.target.value)
-    }
-
-    function onAuthorize() {
-      props.onAuthorize()
-    }
-
-    function renderLangOptions() {
-      return props.languages.map(function(lang) {
-        return $('option', {value: lang.a, textContent: lang.f})
-      })
-    }
-
-    function show() {
-      node.classList.remove('hidden')
-    }
-
-    function hide() {
-      node.classList.add('hidden')
-    }
-
-    function render() {
-      $(node, [
-        $('section', [
-          $('label', {textContent: 'Subtitles Language'}),
-          $('select', {
-            value: state.subLang,
-            onchange: onChangeSubLang
-          }, renderLangOptions())
-        ]),
-        $('section', [
-          $('label', {textContent: 'Translation Language'}),
-          $('select', {
-            value: state.trLang,
-            onchange: onChangeTrLang
-          }, renderLangOptions())
-        ]),
-        $('hr'),
-        $('section', [
-          $('button', {textContent: 'Re-enter Auth Code', onclick: onAuthorize})
-        ])
-      ])
-
-      return node
-    }
-
-    return {
-      node: node,
-      render: render,
-      hide: hide,
-      show: show
-    }
-  }
-
-  function createAuth(props) {
-    var node = $('div', {className: 'screen auth hidden'})
-    var input
-    var length = 4
-
-    function onSubmit(e) {
-      e.preventDefault()
-      props.onAuthorize(input.value)
-    }
-
-    // Length validation in mobile safari doesn't work.
-    function onKeyUp() {
-      if (input.value.length === length) {
-        input.setCustomValidity('')
-      } else {
-        input.setCustomValidity('Required '+ length +' numbers.')
-      }
-    }
-
-    function hide() {
-      input.blur()
-      node.classList.add('hidden')
-    }
-
-    function show() {
-      node.classList.remove('hidden')
-      input.focus()
-    }
-
-    function render() {
-      $(node, [
-        $('form', {onsubmit: onSubmit}, [
-          $('label', {textContent: 'Auth Code'}),
-          input = $('input', {
-            type: 'number',
-            className: 'auth no-spinner',
-            min: 1,
-            max: 9999,
-            size: length,
-            value: props.value || '',
-            required: true,
-            autofocus: true,
-            onkeyup: onKeyUp
-          }),
-          $('p', {textContent: 'Click on Extension to get the code.'})
-        ])
-      ])
-
-      return node
-    }
-
-    return {
-      node: node,
-      render: render,
-      hide: hide,
-      show: show
-    }
-  }
-
-  function createNav(props) {
-    var node = $('div', {className: 'nav'})
-    var items = {}
-    var selected
-
-    function onShow(name) {
-      if (selected === items[name]) return
-      props.onShow(name)
-      select(name)
-    }
-
-    function select(name) {
-      unselect()
-      selected = items[name]
-      selected.classList.add('selected')
-    }
-
-    function unselect() {
-      if (!selected) return
-      selected.classList.remove('selected')
-      selected = null
-    }
-
-    function render() {
-      $(node, [
-        items.menu = $('button', {
-          className: 'icon-button menu-button',
-          onclick: onShow.bind(null, 'menu')
-        }),
-        items.stream = $('button', {
-          className: 'icon-button stream-button',
-          onclick: onShow.bind(null, 'stream')
-        })
-      ])
-      return node
-    }
-
-    return {
-      node: node,
-      render: render,
-      select: select,
-      unselect: unselect
-    }
-  }
+  })
 
   function onSubtitle(data) {
     stream.append({text: data.original})
@@ -425,22 +467,9 @@ function createApp(props) {
   }
 
   function render(data) {
-    controller = createController({
-      onShow: function(inst) {
-        switch (inst) {
-          case stream:
-            return nav.select('stream')
-          case menu:
-            return nav.select('menu')
-          case auth:
-            return nav.unselect()
-        }
-      }
-    })
-
     stream = createStream({onTranslate: props.onTranslate})
 
-    var menu = createMenu({
+    menu = createMenu({
       languages: conf.languages,
       onChangeSubLang: function(value) {
         setState({subLang: value})
@@ -454,7 +483,7 @@ function createApp(props) {
     })
     menu.render()
 
-    var nav = createNav({
+    nav = createNav({
       onShow: function(name) {
         switch (name) {
           case 'menu':
