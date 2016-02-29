@@ -99,14 +99,16 @@ input {
   bottom: 70px;
   left: 50%;
   margin-left: -25px;
-  background-image: url(../img/icons/arrow-down2.svg);
+  background-image: url(../img/icons/arrows.svg);
   background-color: rgba(17,17,17, 0.8);
-  border: 1px solid #fff;
   transition: transform 200ms;
   transform: scale(0);
 }
 .jumper-button.show {
   transform: scale(1);
+}
+.jumper-button:active {
+  background-image: url(../img/icons/arrows-active.svg);
 }
 /* Menu */
 .menu {
@@ -160,7 +162,7 @@ input {
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 10px 0;
+  padding: 3px 0;
   text-align: center;
   background: rgba(0, 0, 0, 0.8);
   border-top: 1px solid rgba(255, 255, 255, 0.2);
@@ -168,19 +170,45 @@ input {
 .nav button {
   width: 44px;
   height: 44px;
-  background-size: 70%;
+  background-size: 60%;
   border-radius: 50%;
 }
-.nav button:active,
-.nav button.selected {
-  background-color: #26ADE4;
-}
 .nav .stream-button {
-  background-image: url(../img/icons/podcast.svg);
+  background-image: url(../img/icons/cinema.svg);
 }
+.nav .stream-button:active,
+.nav .stream-button.selected {
+  background-image: url(../img/icons/cinema-active.svg);
+}
+
 .nav .auth-button {
-  background-image: url(../img/icons/unlocked.svg);
+  background-image: url(../img/icons/tool-1.svg);
 }
+.nav .auth-button:active,
+.nav .auth-button.selected {
+  background-image: url(../img/icons/tool-1-active.svg);
+}
+
 .nav .menu-button {
-  background-image: url(../img/icons/cog.svg);
+  background-image: url(../img/icons/tool.svg);
+}
+.nav .menu-button:active,
+.nav .menu-button.selected {
+  background-image: url(../img/icons/tool-active.svg);
+}
+body:after {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  z-index:-1;
+  content:
+    url(../img/icons/arrows.svg)
+    url(../img/icons/arrows-active.svg)
+    url(../img/icons/cinema.svg)
+    url(../img/icons/cinema-active.svg)
+    url(../img/icons/tool-1.svg)
+    url(../img/icons/tool-1-active.svg)
+    url(../img/icons/tool.svg);
+    url(../img/icons/tool-active.svg);
 }
