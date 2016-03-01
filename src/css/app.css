@@ -164,8 +164,8 @@ input {
   bottom: 0;
   padding: 3px 0;
   text-align: center;
-  background: rgba(0, 0, 0, 0.8);
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(30,30,30,0.8);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 .nav button {
   width: 44px;
