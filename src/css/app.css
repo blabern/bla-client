@@ -45,7 +45,7 @@ input {
   right: 0;
   -webkit-overflow-scrolling: touch;
   background: #1C1C1C;
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(144, 144, 144, 1);
 }
 /* In desktop FF padding-bottom of absolute container doesn't work */
 .screen::after {
@@ -58,17 +58,17 @@ input {
 .stream {
 }
 .stream > section {
-  padding: 5px 0;
+  padding: 7px 0;
 }
 .stream > section.second .subtitle {
-  color: rgba(198, 230, 243, 0.8);
 }
 .stream > section:last-child .subtitle {
-  color: yellow;
+  color: #fff;
 }
 .subtitle p {
   text-align: center;
   font-size: 2em;
+  line-height: 1.1;
   margin: 0;
   -webkit-user-select: none;
   white-space: pre-wrap;
@@ -82,6 +82,7 @@ input {
 .subtitle .word.selected {
   background: #1BA2F9;
   cursor: pointer;
+  color: #fff;
 }
 .translation {
 }
@@ -164,7 +165,7 @@ input {
   bottom: 0;
   text-align: center;
   background: rgba(28,28,28,0.95);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(62, 62, 62, 1);
 }
 .nav button {
   color: rgba(255, 255, 255, 0.7);
