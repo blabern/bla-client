@@ -112,7 +112,6 @@ function createStream(props) {
     className: 'screen stream hidden',
     onclick: onSelectWord
   })
-  var jumper
   var first = false
   var autoScroll = true
   var sectionCounter = 0
@@ -129,13 +128,10 @@ function createStream(props) {
     renderTranslation(node.closest('section'))
   }
 
-  function onScrollToEnd() {
-    scrollToEnd()
-  }
-
   function onScrollChange(state) {
     autoScroll = state.isAtBottom
-    jumper.classList[state.isAtBottom ? 'remove' : 'add']('show')
+    if (state.isAtBottom) props.onHideJumper()
+    else props.onShowJumper()
   }
 
   function scrollToEnd() {
@@ -212,10 +208,6 @@ function createStream(props) {
 
   function render(data) {
     return $(node, [
-      jumper = $('button', {
-        className: 'icon-button jumper-button',
-        onclick: onScrollToEnd
-      }),
       renderSection(data.text)
     ])
   }
@@ -224,6 +216,28 @@ function createStream(props) {
     node: node,
     render: render,
     append: append,
+    show: show,
+    hide: hide,
+    scrollToEnd: scrollToEnd
+  }
+}
+
+function createJumper(props) {
+  var node = $('button', {
+    className: 'icon-button jumper-button',
+    onclick: props.onScrollToEnd
+  })
+
+  function show() {
+    node.classList.add('show')
+  }
+
+  function hide() {
+    node.classList.remove('show')
+  }
+
+  return {
+    node: node,
     show: show,
     hide: hide
   }
@@ -423,6 +437,7 @@ function createApp(props) {
   var menu
   var nav
   var controller
+  var jumper
 
   controller = createController({
     onShow: function(inst) {
@@ -467,7 +482,19 @@ function createApp(props) {
   }
 
   function render(data) {
-    stream = createStream({onTranslate: props.onTranslate})
+    stream = createStream({
+      onTranslate: props.onTranslate,
+      onShowJumper: function() {
+        jumper.show()
+      },
+      onHideJumper: function() {
+        jumper.hide()
+      }
+    })
+
+    jumper = createJumper({
+      onScrollToEnd: stream.scrollToEnd
+    })
 
     menu = createMenu({
       languages: conf.languages,
@@ -508,7 +535,8 @@ function createApp(props) {
       stream.render({text: data.subtitle}),
       menu.node,
       auth.node,
-      nav.node
+      nav.node,
+      jumper.node
     ])
 
     return node
