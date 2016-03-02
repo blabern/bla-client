@@ -330,6 +330,10 @@ function createAuth(props) {
     props.onAuthorize(input.value)
   }
 
+  function onBlur() {
+    props.onAuthorize(input.value)
+  }
+
   // Length validation in mobile safari doesn't work.
   function onKeyUp() {
     if (input.value.length === length) {
@@ -363,7 +367,8 @@ function createAuth(props) {
           value: props.value || '',
           required: true,
           autofocus: true,
-          onkeyup: onKeyUp
+          onkeyup: onKeyUp,
+          onblur: onBlur
         }),
         $('p', {textContent: 'Click on Extension to get the code.'})
       ])
