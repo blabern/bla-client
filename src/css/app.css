@@ -134,17 +134,26 @@ input {
   display: block;
   margin-bottom: 5px;
   font-size: 0.9em;
+  -webkit-user-select: none;
 }
 .menu select {
-  border: 1px solid #1BA2F9;
+  border: 1px solid #909090;
+  color: #909090;
   background: inherit;
-  color: #1BA2F9;
   width: 100%;
   padding: 4px;
+  outline: none;
+}
+.menu select:active,
+.menu select:focus {
+  border: 1px solid #1BA2F9;
+  color: #1BA2F9;
 }
 .menu hr {
-  margin-bottom: 20px;
-  border-color: #3E3E3E;
+  margin: 10px 0;
+  height: 1px;
+  border: none;
+  background: #3E3E3E;
 }
 
 /* Auth */
