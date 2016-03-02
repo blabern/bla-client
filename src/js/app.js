@@ -53,7 +53,11 @@ function $(nameOrNode, props, children) {
       } else if (typeof node[prop] === 'function') {
         node[prop].apply(node, props[prop])
       } else {
-        node[prop] = props[prop]
+        if (prop in node) {
+          node[prop] = props[prop]
+        } else {
+          node.setAttribute(prop, props[prop])
+        }
       }
     }
   }
@@ -305,18 +309,21 @@ function createMenu(props) {
   }
 
   function render() {
+    var id = Math.random()
     $(node, [
       section([
         div({className: 'column'}, [
-          label({textContent: 'Subtitles Language'}),
+          label({textContent: 'Subtitles Language', for: 'subLang' + id}),
           select({
+            id: 'subLang' + id,
             value: state.subLang,
             onchange: onChangeSubLang
           }, renderLangOptions())
         ]),
         div({className: 'column'}, [
-          label({textContent: 'Translation Language'}),
+          label({textContent: 'Translation Language', for: 'trLang' + id}),
           select({
+            id: 'trLang' + id,
             value: state.trLang,
             onchange: onChangeTrLang
           }, renderLangOptions())
