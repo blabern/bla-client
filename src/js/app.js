@@ -61,6 +61,20 @@ function $(nameOrNode, props, children) {
   return node
 }
 
+var div = $.bind(null, 'div')
+var span = $.bind(null, 'span')
+var label = $.bind(null, 'label')
+var form = $.bind(null, 'form')
+var button = $.bind(null, 'button')
+var input = $.bind(null, 'input')
+var select = $.bind(null, 'select')
+var option = $.bind(null, 'option')
+var section = $.bind(null, 'section')
+var hr = $.bind(null, 'hr')
+var p = $.bind(null, 'p')
+var header = $.bind(null, 'header')
+var h2 = $.bind(null, 'h2')
+
 /* App */
 
 var state = assign({
@@ -108,7 +122,7 @@ function createScrollController(props) {
 
 
 function createStream(props) {
-  var node = $('div', {
+  var node = div({
     className: 'screen stream hidden',
     onclick: onSelectWord
   })
@@ -174,8 +188,8 @@ function createStream(props) {
 
   function renderWords(text) {
     return text.split(' ').reduce(function(words, word) {
-      words.push($('span', {className: 'word', textContent: word}))
-      words.push($('span', {textContent: ' '}))
+      words.push(span({className: 'word', textContent: word}))
+      words.push(span({textContent: ' '}))
       return words
     }, [])
   }
@@ -183,12 +197,12 @@ function createStream(props) {
   function renderSection(text) {
     var lines = text.split('\n')
     first = !first
-    return $('section', {
+    return section({
         className: first ? 'first' : 'second',
         dataset: {key: ++sectionCounter}
       }, [
-      $('div', {className: 'subtitle'}, lines.map(function(line) {
-        return $('p', renderWords(line))
+      div({className: 'subtitle'}, lines.map(function(line) {
+        return p(renderWords(line))
       }))
     ])
   }
@@ -223,7 +237,7 @@ function createStream(props) {
 }
 
 function createJumper(props) {
-  var node = $('button', {
+  var node = button({
     className: 'icon-button jumper-button',
     onclick: props.onScrollToEnd
   })
@@ -244,15 +258,15 @@ function createJumper(props) {
 }
 
 function createTranslation() {
-  var node = $('div', {className: 'translation'})
+  var node = div({className: 'translation'})
 
   function render(data) {
     $(node, [
-      $('h2', {textContent: data.original + ' - ' + data.translation.main}),
-      $('div', data.translation.others.map(function(tr) {
-        return $('section', [
-          $('header', {textContent: tr.type}),
-          $('p', {innerHTML: tr.translations.join('<br />')})
+      h2({textContent: data.original + ' - ' + data.translation.main}),
+      div(data.translation.others.map(function(tr) {
+        return section([
+          header({textContent: tr.type}),
+          p({innerHTML: tr.translations.join('<br />')})
         ])
       }))
     ])
@@ -266,7 +280,7 @@ function createTranslation() {
 }
 
 function createMenu(props) {
-  var node = $('div', {className: 'screen menu hidden'})
+  var node = div({className: 'screen menu hidden'})
 
   function onChangeSubLang(e) {
     props.onChangeSubLang(e.target.value)
@@ -278,7 +292,7 @@ function createMenu(props) {
 
   function renderLangOptions() {
     return props.languages.map(function(lang) {
-      return $('option', {value: lang.a, textContent: lang.f})
+      return option({value: lang.a, textContent: lang.f})
     })
   }
 
@@ -292,23 +306,23 @@ function createMenu(props) {
 
   function render() {
     $(node, [
-      $('section', [
-        $('div', {className: 'column'}, [
-          $('label', {textContent: 'Subtitles Language'}),
-          $('select', {
+      section([
+        div({className: 'column'}, [
+          label({textContent: 'Subtitles Language'}),
+          select({
             value: state.subLang,
             onchange: onChangeSubLang
           }, renderLangOptions())
         ]),
-        $('div', {className: 'column'}, [
-          $('label', {textContent: 'Translation Language'}),
-          $('select', {
+        div({className: 'column'}, [
+          label({textContent: 'Translation Language'}),
+          select({
             value: state.trLang,
             onchange: onChangeTrLang
           }, renderLangOptions())
         ])
       ]),
-      $('hr')
+      hr()
     ])
 
     return node
@@ -323,44 +337,44 @@ function createMenu(props) {
 }
 
 function createAuth(props) {
-  var node = $('div', {className: 'screen auth hidden'})
-  var input
+  var node = div({className: 'screen auth hidden'})
+  var code
   var length = 4
 
   function onSubmit(e) {
     e.preventDefault()
-    props.onAuthorize(input.value)
+    props.onAuthorize(code.value)
   }
 
   function onBlur() {
-    props.onAuthorize(input.value)
+    props.onAuthorize(code.value)
   }
 
   // Length validation in mobile safari doesn't work.
   function onKeyUp() {
-    if (input.value.length === length) {
-      input.setCustomValidity('')
+    if (code.value.length === length) {
+      code.setCustomValidity('')
     } else {
-      input.setCustomValidity('Required '+ length +' numbers.')
+      code.setCustomValidity('Required '+ length +' numbers.')
     }
   }
 
   function hide() {
-    input.blur()
+    code.blur()
     node.classList.add('hidden')
   }
 
   function show() {
     node.classList.remove('hidden')
-    input.focus()
+    code.focus()
     document.body.scrollTop = 0
   }
 
   function render() {
     $(node, [
-      $('form', {onsubmit: onSubmit}, [
-        $('label', {textContent: 'Auth Code'}),
-        input = $('input', {
+      form({onsubmit: onSubmit}, [
+        label({textContent: 'Auth Code'}),
+        code = input({
           type: 'number',
           className: 'auth no-spinner',
           min: 1,
@@ -372,7 +386,7 @@ function createAuth(props) {
           onkeyup: onKeyUp,
           onblur: onBlur
         }),
-        $('p', {textContent: 'Click on Extension to get the code.'})
+        p({textContent: 'Click on Extension to get the code.'})
       ])
     ])
 
@@ -388,7 +402,7 @@ function createAuth(props) {
 }
 
 function createNav(props) {
-  var node = $('div', {className: 'nav'})
+  var node = div({className: 'nav'})
   var items = {}
   var selected
 
@@ -412,17 +426,17 @@ function createNav(props) {
 
   function render() {
     $(node, [
-      items.auth = $('button', {
+      items.auth = button({
         className: 'icon-button auth-button',
         textContent: 'Auth',
         onclick: onShow.bind(null, 'auth')
       }),
-      items.stream = $('button', {
+      items.stream = button({
         className: 'icon-button stream-button',
         textContent: 'Subtitles',
         onclick: onShow.bind(null, 'stream')
       }),
-      items.menu = $('button', {
+      items.menu = button({
         className: 'icon-button menu-button',
         textContent: 'Settings',
         onclick: onShow.bind(null, 'menu')
@@ -441,7 +455,7 @@ function createNav(props) {
 
 
 function createApp(props) {
-  var node = $('div', {className: 'app'})
+  var node = div({className: 'app'})
   var stream
   var auth
   var menu
