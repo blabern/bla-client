@@ -412,14 +412,17 @@ function createNav(props) {
     $(node, [
       items.auth = $('button', {
         className: 'icon-button auth-button',
+        textContent: 'Auth',
         onclick: onShow.bind(null, 'auth')
       }),
       items.stream = $('button', {
         className: 'icon-button stream-button',
+        textContent: 'Subtitles',
         onclick: onShow.bind(null, 'stream')
       }),
       items.menu = $('button', {
         className: 'icon-button menu-button',
+        textContent: 'Settings',
         onclick: onShow.bind(null, 'menu')
       })
     ])
