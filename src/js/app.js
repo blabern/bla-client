@@ -293,18 +293,20 @@ function createMenu(props) {
   function render() {
     $(node, [
       $('section', [
-        $('label', {textContent: 'Subtitles Language'}),
-        $('select', {
-          value: state.subLang,
-          onchange: onChangeSubLang
-        }, renderLangOptions())
-      ]),
-      $('section', [
-        $('label', {textContent: 'Translation Language'}),
-        $('select', {
-          value: state.trLang,
-          onchange: onChangeTrLang
-        }, renderLangOptions())
+        $('div', {className: 'column'}, [
+          $('label', {textContent: 'Subtitles Language'}),
+          $('select', {
+            value: state.subLang,
+            onchange: onChangeSubLang
+          }, renderLangOptions())
+        ]),
+        $('div', {className: 'column'}, [
+          $('label', {textContent: 'Translation Language'}),
+          $('select', {
+            value: state.trLang,
+            onchange: onChangeTrLang
+          }, renderLangOptions())
+        ])
       ]),
       $('hr')
     ])

@@ -45,7 +45,7 @@ input {
   right: 0;
   -webkit-overflow-scrolling: touch;
   background: #1C1C1C;
-  color: rgba(144, 144, 144, 1);
+  color: #fff;
 }
 /* In desktop FF padding-bottom of absolute container doesn't work */
 .screen::after {
@@ -64,6 +64,9 @@ input {
 }
 .stream > section:last-child .subtitle {
   color: #fff;
+}
+.subtitle {
+  color: #909090;
 }
 .subtitle p {
   text-align: center;
@@ -115,16 +118,33 @@ input {
 .menu {
 }
 .menu section {
+  display: flex;
   margin-bottom: 20px;
+}
+.menu .column {
+  flex: 1;
+}
+.menu .column:first-child {
+  margin-right: 10%;
 }
 .menu label,
 .menu select {
+}
+.menu label {
   display: block;
+  margin-bottom: 5px;
+  font-size: 0.9em;
+}
+.menu select {
+  border: 1px solid #1BA2F9;
+  background: inherit;
+  color: #1BA2F9;
   width: 100%;
+  padding: 4px;
 }
 .menu hr {
   margin-bottom: 20px;
-  opacity: 0.5;
+  border-color: #3E3E3E;
 }
 
 /* Auth */
@@ -165,7 +185,7 @@ input {
   bottom: 0;
   text-align: center;
   background: rgba(28,28,28,0.95);
-  border-top: 1px solid rgba(62, 62, 62, 1);
+  border-top: 1px solid #3E3E3E;
 }
 .nav button {
   color: rgba(255, 255, 255, 0.7);
