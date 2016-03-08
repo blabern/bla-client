@@ -104,23 +104,27 @@ function getState() {
 function createScrollController(props) {
   var node = props.node
   var threshold = 20
-  var state = {
-    isAtBottom: undefined
-  }
+  var state = {}
 
   function check() {
     var distance = node.scrollTop - (node.scrollHeight - node.offsetHeight)
     var isAtBottom = distance > -threshold
+
     if (isAtBottom !== state.isAtBottom) {
       state.isAtBottom = isAtBottom
       props.onChange(state)
     }
   }
 
+  function reset() {
+    state = {}
+  }
+
   node.addEventListener('scroll', check)
 
   return {
-    check: check
+    check: check,
+    reset: reset
   }
 }
 
@@ -218,9 +222,12 @@ function createStream(props) {
 
   function show() {
     node.classList.remove('hidden')
+    scrollController.check()
   }
 
   function hide() {
+    scrollController.reset()
+    props.onHideJumper()
     node.classList.add('hidden')
   }
 
