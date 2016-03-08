@@ -121,13 +121,10 @@ input, select, button, label {
 .menu .column:first-child {
   margin-right: 10%;
 }
-.menu label,
-.menu select {
-}
 .menu label {
   display: block;
   margin-bottom: 5px;
-  font-size: 0.9em;
+  font-size: 0.8em;
 }
 .menu select {
   border: 1px solid #909090;
