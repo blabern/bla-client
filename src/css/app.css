@@ -3,9 +3,11 @@ html, body {
   -webkit-tap-highlight-color: rgba(0,0,0,0);
 }
 input, select, button, label {
-  -webkit-user-select: none;
   outline: none;
   cursor: pointer;
+}
+select, button, label {
+  -webkit-user-select: none;
 }
 .app * {
   box-sizing: border-box;
