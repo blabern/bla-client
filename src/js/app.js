@@ -101,7 +101,7 @@ function getState() {
   if (item) return JSON.parse(item)
 }
 
-function createScrollController(props) {
+function ScrollRenderController(props) {
   var node = props.node
   var threshold = 20
   var state = {}
@@ -129,7 +129,7 @@ function createScrollController(props) {
 }
 
 
-function createStream(props) {
+function Stream(props) {
   var node = div({
     className: 'screen stream hidden',
     onclick: onSelectWord
@@ -138,7 +138,7 @@ function createStream(props) {
   var autoScroll = true
   var sectionCounter = 0
 
-  var scrollController = createScrollController({
+  var scrollRenderController = ScrollRenderController({
     node: node,
     onChange: onScrollChange
   })
@@ -165,7 +165,7 @@ function createStream(props) {
     var map = {}
     return function(section) {
       var key = section.dataset.key
-      if (!map[key]) map[key] = createTranslation()
+      if (!map[key]) map[key] = Translation()
       return map[key]
     }
   }())
@@ -176,14 +176,14 @@ function createStream(props) {
 
     if (!words) {
       removeNode(translation.node)
-      scrollController.check()
+      scrollRenderController.check()
       return
     }
 
     props.onTranslate(words, function(data) {
       translation.render(data)
       section.appendChild(translation.node)
-      setTimeout(scrollController.check, 100)
+      setTimeout(scrollRenderController.check, 100)
     })
   }
 
@@ -222,11 +222,11 @@ function createStream(props) {
 
   function show() {
     node.classList.remove('hidden')
-    scrollController.check()
+    scrollRenderController.check()
   }
 
   function hide() {
-    scrollController.reset()
+    scrollRenderController.reset()
     props.onHideJumper()
     node.classList.add('hidden')
   }
@@ -247,7 +247,7 @@ function createStream(props) {
   }
 }
 
-function createJumper(props) {
+function Jumper(props) {
   var node = button({
     className: 'icon-button jumper-button',
     onclick: props.onScrollToEnd
@@ -268,7 +268,7 @@ function createJumper(props) {
   }
 }
 
-function createTranslation() {
+function Translation() {
   var node = div({className: 'translation'})
 
   function render(data) {
@@ -290,7 +290,7 @@ function createTranslation() {
   }
 }
 
-function createMenu(props) {
+function Menu(props) {
   var node = div({className: 'screen menu hidden'})
 
   function onChangeSubLang(e) {
@@ -323,6 +323,7 @@ function createMenu(props) {
           label({textContent: 'Subtitles Language', for: 'subLang' + id}),
           select({
             id: 'subLang' + id,
+            className: 'control',
             value: state.subLang,
             onchange: onChangeSubLang
           }, renderLangOptions())
@@ -331,6 +332,7 @@ function createMenu(props) {
           label({textContent: 'Translation Language', for: 'trLang' + id}),
           select({
             id: 'trLang' + id,
+            className: 'control',
             value: state.trLang,
             onchange: onChangeTrLang
           }, renderLangOptions())
@@ -350,58 +352,74 @@ function createMenu(props) {
   }
 }
 
-function createAuth(props) {
-  var node = div({className: 'screen auth hidden'})
+function NumericKeyboard(props) {
+  var node = div({classes: ['numeric-keyboard', props.className]})
+
+  function renderNumbers() {
+    return [1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map(function(num) {
+      return button({
+        className: 'number',
+        textContent: num,
+        onclick: props.onInput.bind(null, num)
+      })
+    })
+  }
+
+  function render() {
+    var numbers = renderNumbers()
+    $(node, numbers)
+    return node
+  }
+
+  return {
+    node: node,
+    render: render
+  }
+}
+
+function Auth(props) {
+  var node = div({classes: ['screen', 'auth', 'hidden']})
   var code
   var length = 4
 
-  function onSubmit(e) {
-    e.preventDefault()
-    props.onAuthorize(code.value)
-  }
-
-  function onBlur() {
-    props.onAuthorize(code.value)
-  }
-
-  // Length validation in mobile safari doesn't work.
-  function onKeyUp() {
-    if (code.value.length === length) {
-      code.setCustomValidity('')
-    } else {
-      code.setCustomValidity('Required '+ length +' numbers.')
+  function onInput(val) {
+    var value = code.value += val
+    if (value.length === length) {
+      props.onAuthorize(value)
     }
   }
 
+  function onClear() {
+    code.value = ''
+  }
+
   function hide() {
-    code.blur()
     node.classList.add('hidden')
   }
 
   function show() {
     node.classList.remove('hidden')
-    code.focus()
-    document.body.scrollTop = 0
   }
 
   function render() {
+    var keyboard = NumericKeyboard({
+      className: 'keyboard-position',
+      onInput: onInput
+    })
     $(node, [
-      form({onsubmit: onSubmit}, [
-        label({textContent: 'Auth Code'}),
-        code = input({
-          type: 'number',
-          className: 'auth no-spinner',
-          min: 1,
-          max: 9999,
-          size: length,
-          value: props.value || '',
-          required: true,
-          autofocus: true,
-          onkeyup: onKeyUp,
-          onblur: onBlur
-        }),
-        p({textContent: 'Click on Extension to get the code.'})
-      ])
+      p({innerHTML: 'Click on Lingvo Extension <br />in your Browser to get the code.'}),
+      code = input({
+        classes: ['code', 'control'],
+        maxlength: length,
+        readonly: true,
+        value: props.value
+      }),
+      keyboard.render(),
+      button({
+        classes: ['link-button', 'clear'],
+        textContent: 'Clear',
+        onclick: onClear
+      })
     ])
 
     return node
@@ -415,7 +433,7 @@ function createAuth(props) {
   }
 }
 
-function createNav(props) {
+function Nav(props) {
   var node = div({className: 'nav'})
   var items = {}
   var selected
@@ -442,7 +460,7 @@ function createNav(props) {
     $(node, [
       items.auth = button({
         className: 'icon-button auth-button',
-        textContent: 'Auth',
+        textContent: 'Connect',
         onclick: onShow.bind(null, 'auth')
       }),
       items.stream = button({
@@ -467,8 +485,23 @@ function createNav(props) {
   }
 }
 
+function RenderController(props) {
+  var active
 
-function createApp(props) {
+  function show(view) {
+    if (view === active) return
+    if (active) active.hide()
+    view.show()
+    active = view
+    props.onShow(view)
+  }
+
+  return {
+    show: show
+  }
+}
+
+function App(props) {
   var node = div({className: 'app'})
   var stream
   var auth
@@ -477,7 +510,7 @@ function createApp(props) {
   var controller
   var jumper
 
-  controller = createController({
+  controller = RenderController({
     onShow: function(inst) {
       switch (inst) {
         case stream:
@@ -503,24 +536,8 @@ function createApp(props) {
     else props.onAuthorize(state.auth)
   }
 
-  function createController(props) {
-    var active
-
-    function show(view) {
-      if (view === active) return
-      if (active) active.hide()
-      view.show()
-      active = view
-      props.onShow(view)
-    }
-
-    return {
-      show: show
-    }
-  }
-
   function render(data) {
-    stream = createStream({
+    stream = Stream({
       onTranslate: props.onTranslate,
       onShowJumper: function() {
         jumper.show()
@@ -530,11 +547,11 @@ function createApp(props) {
       }
     })
 
-    jumper = createJumper({
+    jumper = Jumper({
       onScrollToEnd: stream.scrollToEnd
     })
 
-    menu = createMenu({
+    menu = Menu({
       languages: conf.languages,
       onChangeSubLang: function(value) {
         setState({subLang: value})
@@ -545,7 +562,7 @@ function createApp(props) {
     })
     menu.render()
 
-    nav = createNav({
+    nav = Nav({
       onShow: function(name) {
         switch (name) {
           case 'menu':
@@ -559,7 +576,7 @@ function createApp(props) {
     })
     nav.render()
 
-    auth = createAuth({
+    auth = Auth({
       value: state.auth,
       onAuthorize: function(value) {
         setState({auth: value})
@@ -589,7 +606,7 @@ function createApp(props) {
   }
 }
 
-function createApi(props) {
+function Api(props) {
   var socket
 
   function connect() {
@@ -652,7 +669,7 @@ function init() {
   MBP.enableActive()
   FastClick.attach(document.body)
   var app
-  var api = createApi({
+  var api = Api({
     onSubtitle: function(data) {
       app.onSubtitle(data)
     },
@@ -664,7 +681,7 @@ function init() {
     }
   })
 
-  app = createApp({
+  app = App({
     onTranslate: api.translate,
     onAuthorize: api.authorize
   })
