@@ -1,5 +1,4 @@
 (function() {
-
 var conf = {
   baseUrl: 'http://api.lingvo.tv',
   // baseUrl: 'http://localhost:3000',
@@ -135,9 +134,9 @@ function Stream(props) {
     className: 'screen stream hidden',
     onclick: onSelectWord
   })
+  var sections
   var reconnect
   var isEmpty = true
-  var first = false
   var autoScroll = true
   var sectionCounter = 0
 
@@ -217,9 +216,7 @@ function Stream(props) {
 
   function renderSection(text) {
     var lines = text.split('\n')
-    first = !first
     return section({
-        className: first ? 'first' : 'second',
         dataset: {key: ++sectionCounter}
       }, [
       div({className: 'subtitle'}, lines.map(function(line) {
@@ -231,10 +228,10 @@ function Stream(props) {
   function append(data) {
     if (isEmpty) {
       reconnect.classList.add('hidden')
-      removeNode(node.firstChild)
+      removeNode(sections.firstChild)
       isEmpty = false
     }
-    node.appendChild(renderSection(data.text))
+    sections.appendChild(renderSection(data.text))
     if (autoScroll) scrollToEnd()
   }
 
@@ -251,7 +248,9 @@ function Stream(props) {
 
   function render(data) {
     return $(node, [
-      renderSection(data.text),
+      sections = div({className: 'sections'}, [
+        renderSection(data.text)
+      ]),
       reconnect = renderReconnect()
     ])
   }
@@ -373,14 +372,25 @@ function Menu(props) {
 
 function NumericKeyboard(props) {
   var node = div({classes: ['numeric-keyboard', props.className]})
+  var layout = [
+    [1, 2, 3],
+    [4, 5, 6],
+    [7, 8, 9],
+    [0]
+  ]
 
   function renderNumbers() {
-    return [1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map(function(num) {
-      return button({
-        className: 'number',
-        textContent: num,
-        onclick: props.onInput.bind(null, num)
-      })
+    return layout.map(function(row) {
+      return div(
+        {className: 'row'},
+        row.map(function(num) {
+          return button({
+            className: 'number',
+            textContent: num,
+            onclick: props.onInput.bind(null, num)
+          })
+        })
+      )
     })
   }
 
@@ -403,6 +413,7 @@ function Auth(props) {
 
   function onInput(val) {
     var value = code.value += val
+    props.onChange(value)
     if (value.length === length) {
       props.onAuthorize(value)
     }
@@ -418,6 +429,7 @@ function Auth(props) {
 
   function clear() {
     code.value = ''
+    props.onChange('')
   }
 
   function render() {
@@ -438,7 +450,7 @@ function Auth(props) {
       }),
       keyboard.render(),
       button({
-        classes: ['link-button', 'clear'],
+        classes: ['text-button', 'clear'],
         textContent: 'Clear',
         onclick: clear
       })
@@ -605,8 +617,10 @@ function App(props) {
 
     auth = Auth({
       value: state.auth,
-      onAuthorize: function(value) {
+      onChange: function(value) {
         setState({auth: value})
+      },
+      onAuthorize: function(value) {
         controller.show(stream)
         props.onAuthorize(value)
       }

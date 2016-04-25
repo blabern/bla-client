@@ -1,26 +1,10 @@
 {
-  "version": "1.0.0",
-  "name": "Mobile Boilerplate",
+  "version": ".1.0",
+  "name": "Lingvo.tv",
   "launch_path": "/index.html",
-  "description": "A front-end template that helps you build fast, modern mobile web apps.",
+  "description": "Learn languages while having fun.",
   "icons": {
-    "60": "/img/touch/apple-touch-icon.png",
-    "128": "/img/touch/apple-touch-icon.png"
-  },
-  "developer": {
-    "name": "",
-    "url": ""
-  },
-  "installs_allowed_from": [
-    "*"
-  ],
-  "default_locale": "en",
-  "permissions": {
-  },
-  "locales": {
-    "en": {
-      "name": "Mobile Boilerplate",
-      "description": "A front-end template that helps you build fast, modern mobile web apps."
-    }
+    "60": "/src/img/touch/apple-touch-icon.png",
+    "128": "/src/img/touch/apple-touch-icon.png"
   }
 }
