@@ -164,8 +164,10 @@ select, button, label {
 
 /* Numeric Keyboard */
 .numeric-keyboard {
-  text-align: center;
-  width: 260px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
 }
 .numeric-keyboard .number {
   font-size: 2em;
@@ -175,9 +177,9 @@ select, button, label {
   background: none;
   color: #fff;
   font-weight: 100;
-  margin: 10px;
+  margin: 0.2em 0.3em;
   display: inline-block;
-  padding: 0 23px;
+  padding: 0 0.7em;
   cursor: pointer;
 }
 .numeric-keyboard .number:active {
@@ -187,21 +189,36 @@ select, button, label {
 /* Connect */
 .auth {
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.auth .info {
+  margin-top: 0;
+  flex-grow: 0;
+  flex-shrink: 0;
 }
 .auth .code {
   font-size: 2em;
   width: 4.3em;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
   letter-spacing: 0.4em;
   padding: 4px 12px;
+  flex-grow: 0;
+  flex-shrink: 0;
 }
-.auth .keyboard-position {
-  margin: 0 auto;
+.auth .keyboard {
+  flex-basis: 100%;
 }
 .auth .clear {
-  position: absolute;
-  right: 10px;
-  bottom: 50px;
+  flex-grow: 0;
+  flex-shrink: 0;
+  align-self: flex-end;
+}
+@media (max-height: 500px) {
+  .auth .keyboard {
+    font-size: 0.8em;
+  }
 }
 
 /* Navigation */

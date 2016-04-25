@@ -402,17 +402,21 @@ function Auth(props) {
   }
 
   function render() {
+    alert('test3')
     var keyboard = NumericKeyboard({
-      className: 'keyboard-position',
+      className: 'keyboard',
       onInput: onInput
     })
     $(node, [
-      p({innerHTML: 'Click on Lingvo Extension <br />in your Browser to get the code.'}),
+      p({
+        className: 'info',
+        innerHTML: 'Click on Lingvo Extension <br />in your Browser to get the Code.'
+      }),
       code = input({
         classes: ['code', 'control'],
         maxlength: length,
         readonly: true,
-        value: props.value
+        value: props.value || ''
       }),
       keyboard.render(),
       button({
