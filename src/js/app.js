@@ -37,7 +37,9 @@ function $(nameOrNode, props, children) {
   if (children) {
     node.innerHTML = ''
     for (var i = 0; i < children.length; i++) {
-      node.appendChild(children[i])
+      if (children[i]) {
+        node.appendChild(children[i])
+      }
     }
   }
 
@@ -128,12 +130,13 @@ function ScrollRenderController(props) {
   }
 }
 
-
 function Stream(props) {
   var node = div({
     className: 'screen stream hidden',
     onclick: onSelectWord
   })
+  var reconnect
+  var isEmpty = true
   var first = false
   var autoScroll = true
   var sectionCounter = 0
@@ -194,6 +197,16 @@ function Stream(props) {
     }).join(' ')
   }
 
+  function renderReconnect() {
+    return div({className: 'reconnect-container'}, [
+      button({
+        classes: ['control', 'reconnect'],
+        textContent: 'Reconnect',
+        onclick: props.onReconnect
+      })
+    ])
+  }
+
   function renderWords(text) {
     return text.split(' ').reduce(function(words, word) {
       words.push(span({className: 'word', textContent: word}))
@@ -216,6 +229,11 @@ function Stream(props) {
   }
 
   function append(data) {
+    if (isEmpty) {
+      reconnect.classList.add('hidden')
+      removeNode(node.firstChild)
+      isEmpty = false
+    }
     node.appendChild(renderSection(data.text))
     if (autoScroll) scrollToEnd()
   }
@@ -233,7 +251,8 @@ function Stream(props) {
 
   function render(data) {
     return $(node, [
-      renderSection(data.text)
+      renderSection(data.text),
+      reconnect = renderReconnect()
     ])
   }
 
@@ -389,10 +408,6 @@ function Auth(props) {
     }
   }
 
-  function onClear() {
-    code.value = ''
-  }
-
   function hide() {
     node.classList.add('hidden')
   }
@@ -401,8 +416,11 @@ function Auth(props) {
     node.classList.remove('hidden')
   }
 
+  function clear() {
+    code.value = ''
+  }
+
   function render() {
-    alert('test3')
     var keyboard = NumericKeyboard({
       className: 'keyboard',
       onInput: onInput
@@ -422,7 +440,7 @@ function Auth(props) {
       button({
         classes: ['link-button', 'clear'],
         textContent: 'Clear',
-        onclick: onClear
+        onclick: clear
       })
     ])
 
@@ -433,7 +451,8 @@ function Auth(props) {
     node: node,
     render: render,
     hide: hide,
-    show: show
+    show: show,
+    clear: clear
   }
 }
 
@@ -548,6 +567,10 @@ function App(props) {
       },
       onHideJumper: function() {
         jumper.hide()
+      },
+      onReconnect: function() {
+        auth.clear()
+        controller.show(auth)
       }
     })
 
@@ -692,7 +715,7 @@ function init() {
 
   api.connect()
   // People don't expect that they receive subtitles only if they play the movie.
-  app.render({subtitle: 'Play movie to receive subtitles'})
+  app.render({subtitle: 'Play movie to receive subtitles.'})
 
   document.body.appendChild(app.node)
 }

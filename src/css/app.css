@@ -28,7 +28,7 @@ select, button, label {
   border: 1px solid #909090;
   color: #fff;
   background: inherit;
-  padding: 4px;
+  padding: 4px 8px;
   font-weight: 100;
   font-size: 1.1em;
 }
@@ -76,6 +76,10 @@ select, button, label {
 
 /* Stream */
 .stream {
+}
+.stream .reconnect-container {
+  text-align: center;
+  margin-top: 20px;
 }
 .stream > section {
   padding: 7px 0;
@@ -145,7 +149,7 @@ select, button, label {
   flex: 1;
 }
 .menu .column:first-child {
-  margin-right: 10%;
+  margin-right: 5%;
 }
 .menu label {
   display: block;
@@ -186,7 +190,7 @@ select, button, label {
   background: rgba(255, 255, 255, 0.7);
 }
 
-/* Connect */
+/* Auth */
 .auth {
   text-align: center;
   display: flex;
@@ -215,6 +219,7 @@ select, button, label {
   flex-shrink: 0;
   align-self: flex-end;
 }
+/* When inside of safari with adressbar and toolbar */
 @media (max-height: 500px) {
   .auth .keyboard {
     font-size: 0.8em;
