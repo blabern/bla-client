@@ -188,6 +188,13 @@ select, button, label {
   margin-right: 5%;
   margin-bottom: 2vh;
 }
+@media all and (orientation:landscape) {
+  .numeric-keyboard .number {
+    height: 17vh;
+    width: 17vh;
+  }
+}
+
 .numeric-keyboard .row {
     width: 100%;
 }
