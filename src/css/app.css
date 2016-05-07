@@ -175,12 +175,13 @@ select, button, label {
   align-items: center;
 }
 .numeric-keyboard .number {
+  font-size: 5vh;
+  font-weight: 100;
   line-height: 2em;
   border: 1px solid rgba(255, 255, 255, 0.7);
   border-radius: 50%;
   background: none;
   color: #fff;
-  font-weight: 100;
   cursor: pointer;
   height: 11vh;
   width: 11vh;
