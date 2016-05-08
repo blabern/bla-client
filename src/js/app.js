@@ -687,7 +687,8 @@ function Api(props) {
   }
 
   function translate(text, callback) {
-    var url = conf.baseUrl + '/translation/' + state.subLang + '-' + state.trLang + '/' + encodeURI(text)
+    var lang = state.subLang + '-' + state.trLang
+    var url = conf.baseUrl + '/translation/' + lang + '/' + encodeURI(text)
     fetch(url)
       .then(function(res) {
         return res.text()
@@ -696,6 +697,13 @@ function Api(props) {
         callback(JSON.parse(text))
       })
       .catch(error)
+
+    ga('send', {
+      hitType: 'event',
+      eventCategory: 'translation',
+      eventAction: 'translate',
+      eventLabel: lang
+    })
   }
 
   return {
