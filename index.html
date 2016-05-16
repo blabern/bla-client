@@ -37,6 +37,7 @@
   <body>
     <script>
       (function() {
+        // Avoid caching without owning headers and without a build step.
         function insert(name, url) {
           var node = document.createElement(name)
           // Never cache for now, as it is a prototype.
