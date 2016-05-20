@@ -475,7 +475,7 @@ function Nav(props) {
 
   function onShow(name) {
     if (selected === items[name]) return
-    props.onShow(name)
+    if (props.onShow(name) === false) return
     select(name)
   }
 
@@ -617,6 +617,7 @@ function App(props) {
             return controller.show(auth)
           case 'feedback':
             UserSnap.openReportWindow()
+            return false
         }
       }
     })
