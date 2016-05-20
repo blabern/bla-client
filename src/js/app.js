@@ -507,6 +507,11 @@ function Nav(props) {
         className: 'icon-button menu-button',
         textContent: 'Settings',
         onclick: onShow.bind(null, 'menu')
+      }),
+      items.feedback = button({
+        className: 'icon-button feedback-button',
+        textContent: 'Feedback',
+        onclick: onShow.bind(null, 'feedback')
       })
     ])
     return node
@@ -610,6 +615,8 @@ function App(props) {
             return controller.show(stream)
           case 'auth':
             return controller.show(auth)
+          case 'feedback':
+            UserSnap.openReportWindow()
         }
       }
     })

@@ -74,6 +74,16 @@
 
       ga('create', 'UA-77430744-2', 'auto');
       ga('send', 'pageview');
+
+      (function() {
+      var s = document.createElement("script");
+      s.type = "text/javascript";
+      s.async = true;
+      s.src = '//api.usersnap.com/load/'+
+              '9eb59d68-a8c2-4960-bcac-42519703377e.js';
+      var x = document.getElementsByTagName('script')[0];
+      x.parentNode.insertBefore(s, x);
+      })();
     </script>
   </body>
 </html>

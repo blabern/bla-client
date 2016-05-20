@@ -286,6 +286,14 @@ select, button, label {
   background-image: url(../img/icons/tool-active.svg);
 }
 
+.nav .feedback-button {
+  background-image: url(../img/icons/speech-bubble.svg);
+}
+.nav .feedback-button:active,
+.nav .feedback-button.selected {
+  background-image: url(../img/icons/speech-bubble-active.svg);
+}
+
 /* Preload images to avoid flicker */
 body:after {
   position: absolute;
@@ -302,4 +310,6 @@ body:after {
     url(../img/icons/connection-active.svg)
     url(../img/icons/tool.svg);
     url(../img/icons/tool-active.svg);
+    url(../img/icons/speech-bubble.svg);
+    url(../img/icons/speech-bubble-active.svg);
 }
