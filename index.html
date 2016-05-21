@@ -38,11 +38,12 @@
     <script>
       (function() {
         // Avoid caching without owning headers and without a build step.
-        function insert(name, url) {
+        function insert(name, noCache, url) {
           var node = document.createElement(name)
           // Never cache for now, as it is a prototype.
-          url += '?' + Math.random()
+          if (noCache) url += '?' + Math.random()
           if (name === 'script') {
+            node.async = true
             node.src = url
           } else {
             node.rel = 'stylesheet'
@@ -55,7 +56,7 @@
           './src/css/normalize.css',
           './src/css/main.css',
           './src/css/app.css'
-        ].forEach(insert.bind(null, 'link'))
+        ].forEach(insert.bind(null, 'link', true))
 
         ;[
           './lib/closest.js',
@@ -64,7 +65,9 @@
           './lib/helper.js',
           './lib/fetch.js',
           './src/js/app.js'
-        ].forEach(insert.bind(null, 'script'))
+        ].forEach(insert.bind(null, 'script', true))
+
+        insert('script', false, '//api.usersnap.com/load/9eb59d68-a8c2-4960-bcac-42519703377e.js')
       }())
 
       ;(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
@@ -74,16 +77,6 @@
 
       ga('create', 'UA-77430744-2', 'auto');
       ga('send', 'pageview');
-
-      (function() {
-      var s = document.createElement("script");
-      s.type = "text/javascript";
-      s.async = true;
-      s.src = '//api.usersnap.com/load/'+
-              '9eb59d68-a8c2-4960-bcac-42519703377e.js';
-      var x = document.getElementsByTagName('script')[0];
-      x.parentNode.insertBefore(s, x);
-      })();
     </script>
   </body>
 </html>
