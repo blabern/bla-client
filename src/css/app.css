@@ -215,7 +215,7 @@ select, button, label {
   bottom: 50px;
 }
 .auth.has-keyboard {
-  padding-top: 30%;
+  padding-top: 30vh;
 }
 .auth .info {
   margin-top: 0;
