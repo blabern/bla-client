@@ -214,6 +214,9 @@ select, button, label {
   align-items: center;
   bottom: 50px;
 }
+.auth.has-keyboard {
+  padding-top: 30%;
+}
 .auth .info {
   margin-top: 0;
   flex-grow: 0;

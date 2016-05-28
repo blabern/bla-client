@@ -410,7 +410,7 @@ function NumPad(props) {
 }
 
 function Auth(props) {
-  var node = div({classes: ['screen', 'auth', 'hidden']})
+  var node = div({classes: ['screen', 'auth', 'hidden', hasTouch ? '' : 'has-keyboard']})
   var code
   var numPad
   var length = 4
