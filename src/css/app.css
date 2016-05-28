@@ -84,8 +84,9 @@ select, button, label {
   text-align: center;
   margin-top: 20px;
 }
-.stream > section {
+.stream .sections > section {
   padding: 7px 0;
+  text-align: center;
 }
 .stream .sections > section:last-child .subtitle {
   color: #fff;
@@ -112,6 +113,9 @@ select, button, label {
   color: #fff;
 }
 .translation {
+  display: inline-block;
+  text-align: left;
+  min-width: 50%;
 }
 .translation section p {
   margin-left: 20px;
