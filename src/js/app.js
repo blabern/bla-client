@@ -10,6 +10,8 @@ var error = console.error.bind(console)
 
 /* Utils */
 
+var hasTouch = 'ontouchstart' in window
+
 function assign(a, b) {
   for (var key in b) a[key] = b[key]
   return a
@@ -44,6 +46,7 @@ function $(nameOrNode, props, children) {
 
   if (props) {
     for (var prop in props) {
+      if (props[prop] === undefined) continue
       if (prop === 'classes') {
         node.className = props[prop].join(' ')
       } else if (prop === 'dataset') {
@@ -370,8 +373,8 @@ function Menu(props) {
   }
 }
 
-function NumericKeyboard(props) {
-  var node = div({classes: ['numeric-keyboard', props.className]})
+function NumPad(props) {
+  var node = div({classes: ['num-pad', props.className]})
   var layout = [
     [1, 2, 3],
     [4, 5, 6],
@@ -409,10 +412,20 @@ function NumericKeyboard(props) {
 function Auth(props) {
   var node = div({classes: ['screen', 'auth', 'hidden']})
   var code
+  var numPad
   var length = 4
 
-  function onInput(val) {
-    var value = code.value += val
+  function onInputFromNumPad(val) {
+    code.value += val
+    changed()
+  }
+
+  function onKeyPress() {
+    setTimeout(changed)
+  }
+
+  function changed() {
+    var value = code.value
     props.onChange(value)
     if (value.length === length) {
       props.onAuthorize(value)
@@ -425,6 +438,9 @@ function Auth(props) {
 
   function show() {
     node.classList.remove('hidden')
+    if (!numPad) {
+      code.focus()
+    }
   }
 
   function clear() {
@@ -433,10 +449,13 @@ function Auth(props) {
   }
 
   function render() {
-    var keyboard = NumericKeyboard({
-      className: 'keyboard',
-      onInput: onInput
-    })
+    if (hasTouch) {
+      numPad = NumPad({
+        className: 'touch-keyboard',
+        onInput: onInputFromNumPad
+      })
+    }
+
     $(node, [
       p({
         className: 'info',
@@ -445,10 +464,11 @@ function Auth(props) {
       code = input({
         classes: ['code', 'control'],
         maxlength: length,
-        readonly: true,
-        value: props.value || ''
+        readonly: numPad ? true : undefined,
+        value: props.value || '',
+        onkeypress: onKeyPress
       }),
-      keyboard.render(),
+      numPad && numPad.render(),
       button({
         classes: ['text-button', 'clear'],
         textContent: 'Clear',

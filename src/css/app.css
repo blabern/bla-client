@@ -172,13 +172,13 @@ select, button, label {
 }
 
 /* Numeric Keyboard */
-.numeric-keyboard {
+.num-pad {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   align-items: center;
 }
-.numeric-keyboard .number {
+.num-pad .number {
   font-size: 1.3em;
   line-height: 2em;
   font-weight: 100;
@@ -193,16 +193,16 @@ select, button, label {
   margin-bottom: 2vh;
 }
 @media all and (orientation:landscape) {
-  .numeric-keyboard .number {
+  .num-pad .number {
     height: 17vh;
     width: 17vh;
   }
 }
 
-.numeric-keyboard .row {
+.num-pad .row {
     width: 100%;
 }
-.numeric-keyboard .number:active {
+.num-pad .number:active {
   background: rgba(255, 255, 255, 0.7);
 }
 
@@ -223,12 +223,13 @@ select, button, label {
   font-size: 2em;
   width: 4.3em;
   margin-bottom: 3vh;
-  letter-spacing: 0.4em;
+  letter-spacing: 0.3em;
   padding: 4px 12px;
   flex-grow: 0;
   flex-shrink: 0;
+  color: #fff;
 }
-.auth .keyboard {
+.auth .touch-keyboard {
   flex-basis: 100%;
 }
 .auth .clear {
