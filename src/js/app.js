@@ -82,13 +82,15 @@ var hr = $.bind(null, 'hr')
 var p = $.bind(null, 'p')
 var header = $.bind(null, 'header')
 var h2 = $.bind(null, 'h2')
+var a = $.bind(null, 'a')
 
 /* App */
 
 var state = assign({
   subLang: 'en',
   trLang: 'en',
-  auth: undefined
+  auth: undefined,
+  shareReminderCounter: 0
 }, getState())
 
 function setState(nextState) {
@@ -545,6 +547,117 @@ function Nav(props) {
   }
 }
 
+function Dialog() {
+  var node = div({classes: ['dialog', 'hidden']})
+  var content
+
+  function setContent(_content) {
+    content = _content
+    return this
+  }
+
+  function render() {
+    $(node, [content])
+    return node
+  }
+
+  function show() {
+    node.classList.remove('hidden')
+    return this
+  }
+
+  function close() {
+    node.classList.add('hidden')
+    return this
+  }
+
+  return {
+    node: node,
+    render: render,
+    setContent: setContent,
+    show: show,
+    close: close
+  }
+}
+
+function ShareReminder() {
+  var node = div({className: 'share-reminder'})
+  var maxReminds = 3
+  var wait = 5 * 60 * 1000
+  var dialog
+
+  function close() {
+    dialog.close()
+  }
+
+  function renderShare() {
+    dialog = new Dialog()
+
+    var content = div({className: 'social-share'}, [
+      h2({textContent: 'Support Lingvo TV by sharing it with friends!'}),
+      div({
+        className: 'ssk-block',
+        dataset: {text: 'Learn languages while watching movies on Netflix and co.'}
+      }, [
+        a({href: '', className: 'ssk ssk-text ssk-facebook', textContent: 'Share with Facebook'}),
+        a({href: '', className: 'ssk ssk-text ssk-twitter', textContent: 'Share with Twitter'}),
+        a({href: '', className: 'ssk ssk-text ssk-vk', textContent: 'Share with VK'}),
+        button({
+          classes: ['control', 'close'],
+          textContent: 'Remind me later',
+          onclick: close
+        })
+      ])
+    ])
+    $(node, [dialog.setContent(content).render()])
+    SocialShareKit.init()
+    dialog.show()
+  }
+
+  function onYes() {
+    dialog.close()
+    renderShare()
+  }
+
+  function onNo() {
+    dialog.close()
+    UserSnap.openReportWindow()
+  }
+
+  function renderQuestion() {
+    dialog = new Dialog()
+
+    var content = div({className: 'like-question'}, [
+      h2({textContent: 'Do you like Lingvo TV?'}),
+      button({
+        classes: ['control', 'no'],
+        textContent: 'No',
+        onclick: onNo
+      }),
+      button({
+        classes: ['control', 'yes'],
+        textContent: 'Yes',
+        onclick: onYes
+      })
+    ])
+    $(node, [dialog.setContent(content).render()])
+    dialog.show()
+  }
+
+  function start() {
+    setState({shareReminderCounter: ++state.shareReminderCounter})
+    renderQuestion()
+  }
+
+  if (state.shareReminderCounter < maxReminds) {
+    setTimeout(start, wait)
+  }
+
+  return {
+    node: node
+  }
+}
+
 function RenderController(props) {
   var active
 
@@ -569,6 +682,7 @@ function App(props) {
   var nav
   var controller
   var jumper
+  var shareReminder
 
   controller = RenderController({
     onShow: function(inst) {
@@ -655,12 +769,15 @@ function App(props) {
     })
     auth.render()
 
+    shareReminder = new ShareReminder()
+
     $(node, [
       stream.render({text: data.subtitle}),
       menu.node,
       auth.node,
       nav.node,
-      jumper.node
+      jumper.node,
+      shareReminder.node
     ])
 
     return node

@@ -9,6 +9,9 @@ input, select, button, label {
 select, button, label {
   -webkit-user-select: none;
 }
+a:visited {
+  color: #fff;
+}
 .app * {
   box-sizing: border-box;
 }
@@ -31,6 +34,7 @@ select, button, label {
   padding: 4px 8px;
   font-weight: 100;
   font-size: 1.1em;
+  min-width: 50px;
 }
 .control:active,
 .control:focus {
@@ -300,6 +304,38 @@ select, button, label {
 .nav .feedback-button:active,
 .nav .feedback-button.selected {
   background-image: url(../img/icons/speech-bubble-active.svg);
+}
+
+/* Dialog */
+
+.dialog {
+  position: absolute;
+  z-index: 100;
+  border-radius: 5px;
+  background: #fff;
+  top: 20vh;
+  left: 3vh;
+  right: 3vh;
+  min-height: 30px;
+}
+
+/* Share reminder */
+.share-reminder {
+  text-align: center;
+}
+.share-reminder .ssk-block {
+  display: inline-block;
+  width: 250px;
+}
+.share-reminder .ssk {
+  margin-bottom: 10px;
+}
+.share-reminder .control {
+  color: #000;
+  margin-bottom: 20px;
+}
+.share-reminder .no {
+  margin-right: 10px;
 }
 
 /* Preload images to avoid flicker */
