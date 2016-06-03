@@ -585,6 +585,9 @@ function ShareReminder() {
   var maxReminds = 3
   var wait = 5 * 60 * 1000
   var dialog
+  var shareOptions = {
+    url: 'http://lingvo.tv'
+  }
 
   function close() {
     dialog.close()
@@ -610,7 +613,7 @@ function ShareReminder() {
       ])
     ])
     $(node, [dialog.setContent(content).render()])
-    SocialShareKit.init()
+    SocialShareKit.init(shareOptions)
     dialog.show()
   }
 
