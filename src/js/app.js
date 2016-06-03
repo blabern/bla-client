@@ -583,7 +583,7 @@ function Dialog() {
 function ShareReminder() {
   var node = div({className: 'share-reminder'})
   var maxReminds = 3
-  var wait = 5 * 60 * 1000
+  var wait = 3 * 60 * 1000
   var dialog
   var shareOptions = {
     url: 'http://lingvo.tv'
