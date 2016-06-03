@@ -302,6 +302,14 @@ function Translation() {
           header({textContent: tr.type}),
           p({innerHTML: tr.translations.join('<br />')})
         ])
+      })),
+      div(data.translation.thesaurus.map(function(tr) {
+        return section([
+          header({textContent: tr.type}),
+          p(tr.translations.map(function(tr) {
+            return p({textContent: tr})
+          }))
+        ])
       }))
     ])
     return node
