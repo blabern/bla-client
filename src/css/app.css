@@ -307,21 +307,31 @@ a:visited {
 }
 
 /* Dialog */
-
 .dialog {
   position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 100;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.dialog .window {
   border-radius: 5px;
   background: #fff;
-  top: 20vh;
-  left: 3vh;
-  right: 3vh;
-  min-height: 30px;
+  max-width: 94vw;
+  max-height: 94vh;
 }
 
 /* Share reminder */
 .share-reminder {
   text-align: center;
+}
+.share-reminder .social-share {
+  margin: 0 10px;
 }
 .share-reminder .ssk-block {
   display: inline-block;
@@ -330,15 +340,17 @@ a:visited {
 .share-reminder .ssk {
   margin-bottom: 10px;
 }
+.share-reminder .actions-bar {
+  margin-bottom: 20px;
+}
 .share-reminder .control {
   color: #000;
-  margin-bottom: 20px;
+}
+.share-reminder .like-question {
+  margin: 0 10px;
 }
 .share-reminder .no {
   margin-right: 10px;
-}
-.share-reminder .done {
-  float: right;
 }
 
 /* Preload images to avoid flicker */

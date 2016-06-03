@@ -565,7 +565,7 @@ function Dialog() {
   }
 
   function render() {
-    $(node, [content])
+    $(node, [div({className: 'window'}, [content])])
     return node
   }
 
@@ -612,7 +612,9 @@ function ShareReminder() {
       }, [
         a({href: '', className: 'ssk ssk-text ssk-facebook', textContent: 'Share with Facebook'}),
         a({href: '', className: 'ssk ssk-text ssk-twitter', textContent: 'Share with Twitter'}),
-        a({href: '', className: 'ssk ssk-text ssk-vk', textContent: 'Share with VK'}),
+        a({href: '', className: 'ssk ssk-text ssk-vk', textContent: 'Share with VK'})
+      ]),
+      div({classes: ['actions-bar']}, [
         button({
           classes: ['control', 'done'],
           textContent: 'Done',
@@ -640,16 +642,18 @@ function ShareReminder() {
 
     var content = div({className: 'like-question'}, [
       h2({textContent: 'Do you like Lingvo TV?'}),
-      button({
-        classes: ['control', 'no'],
-        textContent: 'No',
-        onclick: onNo
-      }),
-      button({
-        classes: ['control', 'yes'],
-        textContent: 'Yes',
-        onclick: onYes
-      })
+      div({classes: ['actions-bar']}, [
+        button({
+          classes: ['control', 'no'],
+          textContent: 'No',
+          onclick: onNo
+        }),
+        button({
+          classes: ['control', 'yes'],
+          textContent: 'Yes',
+          onclick: onYes
+        })
+      ])
     ])
     $(node, [dialog.setContent(content).render()])
     dialog.show()
