@@ -606,8 +606,8 @@ function ShareReminder() {
         a({href: '', className: 'ssk ssk-text ssk-twitter', textContent: 'Share with Twitter'}),
         a({href: '', className: 'ssk ssk-text ssk-vk', textContent: 'Share with VK'}),
         button({
-          classes: ['control', 'close'],
-          textContent: 'Remind me later',
+          classes: ['control', 'done'],
+          textContent: 'Done',
           onclick: close
         })
       ])
