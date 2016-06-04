@@ -612,9 +612,9 @@ function ShareReminder() {
         className: 'ssk-block',
         dataset: {text: 'Learn languages while watching movies on Netflix and co.'}
       }, [
-        a({href: '', className: 'ssk ssk-text ssk-facebook', textContent: 'Share with Facebook'}),
-        a({href: '', className: 'ssk ssk-text ssk-twitter', textContent: 'Share with Twitter'}),
-        a({href: '', className: 'ssk ssk-text ssk-vk', textContent: 'Share with VK'})
+        a({href: '', className: 'ssk ssk-text ssk-facebook', textContent: 'Share on Facebook'}),
+        a({href: '', className: 'ssk ssk-text ssk-twitter', textContent: 'Share on Twitter'}),
+        a({href: '', className: 'ssk ssk-text ssk-vk', textContent: 'Share on VK'})
       ]),
       div({classes: ['actions-bar']}, [
         button({
