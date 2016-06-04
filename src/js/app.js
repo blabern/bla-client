@@ -592,12 +592,12 @@ function ShareReminder() {
   var node = div({className: 'share-reminder'})
   var maxReminds = 3
   var wait = 3 * 60 * 1000
-  var minDelayAfterSubtitle = 5 * 1000
+  var minDelayAfterSubtitle = 3 * 1000
+  var lastSubtitleTime = Date.now()
   var dialog
   var shareOptions = {
     url: 'http://lingvo.tv'
   }
-  var timerId
 
   function close() {
     dialog.close()
@@ -640,10 +640,7 @@ function ShareReminder() {
   }
 
   function onSubtitle() {
-    clearTimeout(timerId)
-    if (state.shareReminderCounter < maxReminds) {
-      timerId = setTimeout(start, 2000)
-    }
+    lastSubtitleTime = Date.now()
   }
 
   function renderQuestion() {
@@ -669,12 +666,15 @@ function ShareReminder() {
   }
 
   function start() {
+    if (Date.now() - lastSubtitleTime < minDelayAfterSubtitle) {
+      return setTimeout(start, 5000)
+    }
     setState({shareReminderCounter: ++state.shareReminderCounter})
     renderQuestion()
   }
 
   if (state.shareReminderCounter < maxReminds) {
-    timerId = setTimeout(start, wait)
+    setTimeout(start, wait)
   }
 
   return {
