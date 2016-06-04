@@ -641,7 +641,9 @@ function ShareReminder() {
 
   function onSubtitle() {
     clearTimeout(timerId)
-    timerId = setTimeout(start, 2000)
+    if (state.shareReminderCounter < maxReminds) {
+      timerId = setTimeout(start, 2000)
+    }
   }
 
   function renderQuestion() {
