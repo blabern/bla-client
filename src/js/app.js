@@ -196,8 +196,8 @@ function Stream(props) {
 
   function getWords(section) {
     return toArray(section.querySelectorAll('.selected')).map(function(node) {
-      // Remove spaces and punktuation marks.
-      return node.textContent.replace(/\W/g, '')
+      // Remove spaces and punctuation marks.
+      return node.textContent.trim().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '')
     }).join(' ')
   }
 
