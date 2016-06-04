@@ -592,10 +592,12 @@ function ShareReminder() {
   var node = div({className: 'share-reminder'})
   var maxReminds = 3
   var wait = 3 * 60 * 1000
+  var minDelayAfterSubtitle = 5 * 1000
   var dialog
   var shareOptions = {
     url: 'http://lingvo.tv'
   }
+  var timerId
 
   function close() {
     dialog.close()
@@ -637,6 +639,11 @@ function ShareReminder() {
     UserSnap.openReportWindow()
   }
 
+  function onSubtitle() {
+    clearTimeout(timerId)
+    timerId = setTimeout(start, 2000)
+  }
+
   function renderQuestion() {
     dialog = new Dialog()
 
@@ -665,11 +672,12 @@ function ShareReminder() {
   }
 
   if (state.shareReminderCounter < maxReminds) {
-    setTimeout(start, wait)
+    timerId = setTimeout(start, wait)
   }
 
   return {
-    node: node
+    node: node,
+    onSubtitle: onSubtitle
   }
 }
 
@@ -714,6 +722,7 @@ function App(props) {
 
   function onSubtitle(data) {
     stream.append({text: data.original})
+    shareReminder.onSubtitle(data)
   }
 
   function onAuthorized() {
