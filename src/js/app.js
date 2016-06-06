@@ -666,16 +666,17 @@ function ShareReminder() {
   }
 
   function start() {
+    if (state.shareReminderCounter >= maxReminds) return
+
     if (Date.now() - lastSubtitleTime < minDelayAfterSubtitle) {
       return setTimeout(start, 5000)
     }
+
     setState({shareReminderCounter: ++state.shareReminderCounter})
     renderQuestion()
   }
 
-  if (state.shareReminderCounter < maxReminds) {
-    setTimeout(start, wait)
-  }
+  setTimeout(start, wait)
 
   return {
     node: node,
