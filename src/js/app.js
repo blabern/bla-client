@@ -83,6 +83,8 @@ var p = $.bind(null, 'p')
 var header = $.bind(null, 'header')
 var h2 = $.bind(null, 'h2')
 var a = $.bind(null, 'a')
+var ul = $.bind(null, 'ul')
+var li = $.bind(null, 'li')
 
 /* App */
 
@@ -135,6 +137,32 @@ function ScrollRenderController(props) {
   return {
     check: check,
     reset: reset
+  }
+}
+
+function Dialog(options) {
+  var node = div({classes: ['dialog', 'hidden']})
+
+  function render() {
+    $(node, [div({className: 'window'}, [options.content])])
+    return node
+  }
+
+  function show() {
+    node.classList.remove('hidden')
+    return this
+  }
+
+  function hide() {
+    node.classList.add('hidden')
+    return this
+  }
+
+  return {
+    node: node,
+    render: render,
+    show: show,
+    hide: hide
   }
 }
 
@@ -423,11 +451,39 @@ function NumPad(props) {
   }
 }
 
+function AuthHelp() {
+  var dialog
+
+  function onHide() {
+    dialog.hide()
+  }
+
+  var content = div({className: 'auth-help'}, [
+    h2({textContent: 'Please make sure:'}),
+    li({textContent: 'Both devices, desktop and phone have internet access.'}),
+    li({textContent: 'Chrome Extension on your desktop browser is installed.'}),
+    li({textContent: 'Verification code from extension is correct.'}),
+    li({textContent: 'Movie is playing and subtitles are on the screen.'}),
+    div({classes: ['actions-bar']}, [
+      button({
+        classes: ['control', 'done'],
+        textContent: 'Ok',
+        onclick: onHide
+      })
+    ])
+  ])
+
+  dialog = new Dialog({content: content})
+
+  return dialog
+}
+
 function Auth(props) {
   var node = div({classes: ['screen', 'auth', 'hidden', hasTouch ? '' : 'has-keyboard']})
   var code
   var numPad
   var length = 4
+  var help
 
   function onInputFromNumPad(val) {
     code.value += val
@@ -436,6 +492,10 @@ function Auth(props) {
 
   function onKeyPress() {
     setTimeout(changed)
+  }
+
+  function onHelp() {
+    help.show()
   }
 
   function changed() {
@@ -469,6 +529,7 @@ function Auth(props) {
         onInput: onInputFromNumPad
       })
     }
+    help = new AuthHelp()
 
     $(node, [
       p({
@@ -484,10 +545,16 @@ function Auth(props) {
       }),
       numPad && numPad.render(),
       button({
+        classes: ['text-button', 'help'],
+        textContent: 'Help',
+        onclick: onHelp
+      }),
+      button({
         classes: ['text-button', 'clear'],
         textContent: 'Clear',
         onclick: clear
-      })
+      }),
+      help.render()
     ])
 
     return node
@@ -559,39 +626,6 @@ function Nav(props) {
   }
 }
 
-function Dialog() {
-  var node = div({classes: ['dialog', 'hidden']})
-  var content
-
-  function setContent(_content) {
-    content = _content
-    return this
-  }
-
-  function render() {
-    $(node, [div({className: 'window'}, [content])])
-    return node
-  }
-
-  function show() {
-    node.classList.remove('hidden')
-    return this
-  }
-
-  function close() {
-    node.classList.add('hidden')
-    return this
-  }
-
-  return {
-    node: node,
-    render: render,
-    setContent: setContent,
-    show: show,
-    close: close
-  }
-}
-
 function ShareReminder() {
   var node = div({className: 'share-reminder'})
   var maxReminds = 3
@@ -604,12 +638,10 @@ function ShareReminder() {
   }
 
   function close() {
-    dialog.close()
+    dialog.hide()
   }
 
   function renderShare() {
-    dialog = new Dialog()
-
     var content = div({className: 'social-share'}, [
       h2({textContent: 'Support Lingvo TV by sharing it with friends!'}),
       div({
@@ -628,18 +660,19 @@ function ShareReminder() {
         })
       ])
     ])
-    $(node, [dialog.setContent(content).render()])
+    dialog = new Dialog({content: content})
+    $(node, [dialog.render()])
     SocialShareKit.init(shareOptions)
     dialog.show()
   }
 
   function onYes() {
-    dialog.close()
+    dialog.hide()
     renderShare()
   }
 
   function onNo() {
-    dialog.close()
+    dialog.hide()
     feedback()
   }
 
@@ -648,8 +681,6 @@ function ShareReminder() {
   }
 
   function renderQuestion() {
-    dialog = new Dialog()
-
     var content = div({className: 'like-question'}, [
       h2({textContent: 'Do you like Lingvo TV?'}),
       div({classes: ['actions-bar']}, [
@@ -665,7 +696,8 @@ function ShareReminder() {
         })
       ])
     ])
-    $(node, [dialog.setContent(content).render()])
+    dialog = new Dialog({content: content})
+    $(node, [dialog.render()])
     dialog.show()
   }
 
