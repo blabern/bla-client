@@ -107,6 +107,10 @@ function getState() {
   if (item) return JSON.parse(item)
 }
 
+function feedback() {
+  location.href = 'mailto:lingvotvapp@gmail.com?subject=Feedback'
+}
+
 function ScrollRenderController(props) {
   var node = props.node
   var threshold = 20
@@ -636,7 +640,7 @@ function ShareReminder() {
 
   function onNo() {
     dialog.close()
-    UserSnap.openReportWindow()
+    feedback()
   }
 
   function onSubtitle() {
@@ -777,7 +781,7 @@ function App(props) {
           case 'auth':
             return controller.show(auth)
           case 'feedback':
-            UserSnap.openReportWindow()
+            feedback()
             return false
         }
       }
