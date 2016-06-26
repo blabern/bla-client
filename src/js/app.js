@@ -88,6 +88,7 @@ var h2 = $.bind(null, 'h2')
 var a = $.bind(null, 'a')
 var ul = $.bind(null, 'ul')
 var li = $.bind(null, 'li')
+var nav = $.bind(null, 'nav')
 
 /* App */
 
@@ -121,6 +122,7 @@ function ScrollRenderController(props) {
   var node = props.node
   var threshold = 20
   var state = {}
+  var timerId
 
   function check() {
     var distance = node.scrollTop - (node.scrollHeight - node.offsetHeight)
@@ -136,7 +138,10 @@ function ScrollRenderController(props) {
     state = {}
   }
 
-  node.addEventListener('scroll', check)
+  node.addEventListener('scroll', function() {
+    clearTimeout(timerId)
+    timerId = setTimeout(check, 50)
+  })
 
   return {
     check: check,
@@ -265,6 +270,7 @@ function Stream(props) {
 }
 
 function SubtitleSection(props) {
+  props.theme || (props.theme = {classes: {}})
   var api = {}
   var node = section()
   var translation = Translation({})
@@ -292,6 +298,8 @@ function SubtitleSection(props) {
       selected: props.selected,
       marked: props.marked,
       isPrimary: props.isPrimary,
+      isSelectable: props.isSelectable,
+      className: props.theme.classes.subtitle,
       onSelectWords: onSelectWords
     })
     return api
@@ -314,6 +322,7 @@ function SubtitleSection(props) {
 function Subtitle(props) {
   props.selected || (props.selected = '')
   props.marked || (props.marked = '')
+  props.isSelectable !== undefined || (props.isSelectable = true)
 
   var api
   var node = div({
@@ -322,7 +331,7 @@ function Subtitle(props) {
 
   function onClickWord(e) {
     var word = e.target
-    if (!word.classList.contains('word')) return
+    if (!props.isSelectable || !word.classList.contains('word')) return
     word.classList.toggle('is-selected')
     props.onSelectWords({node: node, words: getWords()})
   }
@@ -341,10 +350,16 @@ function Subtitle(props) {
   function renderWords(text) {
     return text.split(' ').reduce(function(words, word) {
       var cleanWord = clearWord(word)
-      var isSelected = cleanWord && props.selected.indexOf(cleanWord) !== -1
-      var isMarked = cleanWord && props.marked.indexOf(cleanWord) !== -1
+      var isSelected = cleanWord && props.selected.split(' ').indexOf(cleanWord) !== -1
+      var isMarked = cleanWord && props.marked.split(' ').indexOf(cleanWord) !== -1
+
       words.push(span({
-        classes: ['word', isSelected ? 'is-selected' : '', isMarked ? 'is-marked' : ''],
+        classes: [
+          'word',
+          isSelected ? 'is-selected' : '',
+          isMarked ? 'is-marked' : '',
+          props.isSelectable ? 'is-selectable' : ''
+        ],
         textContent: word
       }))
       words.push(span({textContent: ' '}))
@@ -361,8 +376,12 @@ function Subtitle(props) {
     if (!props.text) return node
 
     var lines = props.text.split('\n')
-
-    return $(node, {classes: ['subtitle', props.isPrimary ? 'is-primary' : '']},
+    var classes = [
+      'subtitle',
+      props.isPrimary ? 'is-primary' : '',
+      props.className
+    ]
+    return $(node, {classes: classes},
       lines.map(function(line) {
         return p(renderWords(line))
       })
@@ -412,13 +431,13 @@ function Translation(props) {
       h2({textContent: props.original + ' - ' + props.translation.main}),
       div(props.translation.others.map(function(tr) {
         return section([
-          header({textContent: tr.type}),
+          div({textContent: tr.type}),
           p({innerHTML: tr.translations.join('<br />')})
         ])
       })),
       div(props.translation.thesaurus.map(function(tr) {
         return section([
-          header({textContent: tr.type}),
+          div({textContent: tr.type}),
           p(tr.translations.map(function(tr) {
             return p({textContent: tr})
           }))
@@ -439,6 +458,22 @@ function Translation(props) {
 function History(props) {
   var node = div({className: 'screen history hidden'})
   var lastHistoryLength = state.history.length
+  var api
+  var selectedMap = {}
+
+  function onSelect(id, e) {
+    e.preventDefault()
+    e.stopPropagation()
+    selectedMap[id] = !selectedMap[id]
+    render()
+    props.onSelect({selected: getSelected()})
+  }
+
+  function getSelected() {
+    return Object.keys(selectedMap).filter(function(id) {
+      return selectedMap[id]
+    })
+  }
 
   function isSameDay(date1, date2) {
     return date1.getDate() === date2.getDate() &&
@@ -464,6 +499,16 @@ function History(props) {
 
     setState(state)
     render()
+    return api
+  }
+
+  function deleteSelected() {
+    state.history = state.history.filter(function(entry, id) {
+      return !selectedMap[id]
+    })
+    selectedMap = {}
+    render()
+    setState(state)
   }
 
   function show() {
@@ -472,58 +517,166 @@ function History(props) {
       render()
     }
     node.classList.remove('hidden')
+    props.onShow()
+    return api
   }
 
   function hide() {
     node.classList.add('hidden')
+    props.onHide()
+    return api
   }
 
   function renderSeparator(date) {
     var dateStr = date.getDate() + '.' + (date.getMonth() + 1) + '.' + date.getFullYear()
-    return div({className: 'separator'}, [
+    return div({className: 'date-separator'}, [
       span({textContent: dateStr})
     ])
   }
 
-  function renderSection(entry) {
-    return SubtitleSection({}).setProps({
+  function renderSection(entry, id) {
+    var section = SubtitleSection({}).setProps({
       text: entry.subtitle,
       marked: entry.words,
       isPrimary: true,
+      isSelectable: !props.isInEditMode,
       className: 'history-section',
-      onTranslate: props.onTranslate
+      onTranslate: props.onTranslate,
+      theme: {
+        classes: {
+          subtitle: 'history-subtitle'
+        }
+      }
     }).render()
+
+    if (props.isInEditMode) {
+      return div({className: 'edit-mode-container', onclick: onSelect.bind(null, id)}, [
+        input({
+          type: 'checkbox',
+          onclick: onSelect.bind(null, id),
+          checked: selectedMap[id]
+        }),
+        section
+      ])
+    }
+
+    return section
   }
 
   function render() {
-    if (!state.history.length) {
-      return $(node, [
+    var content
+
+    if (state.history.length) {
+      content = state.history.reduce(function(rows, entry, i, entries) {
+        var prevEntry = entries[i - 1]
+        var currDate = new Date(entry.time)
+        if (!prevEntry || !isSameDay(new Date(prevEntry.time), currDate)) {
+          rows.push(renderSeparator(currDate))
+        }
+        rows.push(renderSection(entry, i))
+        return rows
+      }, [])
+    } else {
+      content = [
         div({className: 'empty'}, [
           h1({textContent: 'Nothing found.'}),
           p({textContent: 'Click on subtitles to translate.'})
         ])
-      ])
+      ]
     }
 
-    rows = state.history.reduce(function(rows, entry, i, entries) {
-      var prevEntry = entries[i - 1]
-      var currDate = new Date(entry.time)
-      if (!prevEntry || !isSameDay(new Date(prevEntry.time), currDate)) {
-        rows.push(renderSeparator(currDate))
-      }
-      rows.push(renderSection(entry))
-      return rows
-    }, [])
-
-    return $(node, rows)
+    return $(node, content)
   }
 
-  return {
+  function setProps(nextProps) {
+    assign(props, nextProps)
+    return api
+  }
+
+  return api = {
     node: node,
     render: render,
     show: show,
     hide: hide,
-    add: add
+    add: add,
+    setProps: setProps,
+    deleteSelected: deleteSelected
+  }
+}
+
+function HistoryHeader(props) {
+  var nav = Nav({className: 'history-header', top: true})
+  var node = nav.node
+  var api
+
+  function setProps(nextProps) {
+    assign(props, nextProps)
+    return api
+  }
+
+  function renderButtons() {
+    if (!props.canEdit) return
+
+    return [
+      button({
+        textContent: 'Edit',
+        classes: ['text-button', props.isEditing ? 'hidden' : ''],
+        onclick: props.onEdit
+      }),
+      button({
+        textContent: 'Done',
+        classes: ['text-button', props.isEditing ? '' : 'hidden', 'cta'],
+        onclick: props.onDone
+      })
+    ]
+  }
+
+  function render() {
+    return $(node, [
+      div({className: 'placeholder'}),
+      div({textContent: 'History', classes: ['title']}),
+      div({className: 'button-container'}, renderButtons())
+    ])
+
+    return api
+  }
+
+  return api = {
+    node: node,
+    render: render,
+    setProps: setProps,
+    show: nav.show,
+    hide: nav.hide
+  }
+}
+
+function HistoryFooter(props) {
+  var nav = Nav({className: 'history-footer'})
+  var node = nav.node
+  var api
+
+  function render() { 
+    return $(node, [
+      button({
+        textContent: 'Delete',
+        className: 'text-button',
+        disabled: !props.buttonsEnabled,
+        onclick: props.onDelete
+      })
+    ])
+  }
+
+  function setProps(nextProps) {
+    assign(props, nextProps)
+    return api
+  }
+
+  return api = {
+    node: node,
+    render: render,
+    show: nav.show,
+    hide: nav.hide,
+    setProps: setProps
   }
 }
 
@@ -743,14 +896,15 @@ function Auth(props) {
   }
 }
 
-function Nav(props) {
-  var node = div({className: 'nav'})
+function MainNav(props) {
+  var nav = Nav({className: 'main-nav'}).show()
+  var node = nav.node
   var items = {}
   var selected
 
-  function onShow(name) {
+  function onSelect(name) {
     if (selected === items[name]) return
-    if (props.onShow(name) === false) return
+    if (props.onSelect(name) === false) return
     select(name)
   }
 
@@ -771,27 +925,27 @@ function Nav(props) {
       items.auth = button({
         className: 'icon-button auth-button',
         textContent: 'Connect',
-        onclick: onShow.bind(null, 'auth')
+        onclick: onSelect.bind(null, 'auth')
       }),
       items.stream = button({
         className: 'icon-button stream-button',
         textContent: 'Subtitles',
-        onclick: onShow.bind(null, 'stream')
+        onclick: onSelect.bind(null, 'stream')
       }),
       items.history = button({
         className: 'icon-button history-button',
         textContent: 'History',
-        onclick: onShow.bind(null, 'history')
+        onclick: onSelect.bind(null, 'history')
       }),
       items.menu = button({
         className: 'icon-button settings-button',
         textContent: 'Settings',
-        onclick: onShow.bind(null, 'menu')
+        onclick: onSelect.bind(null, 'menu')
       }),
       items.feedback = button({
         className: 'icon-button feedback-button',
         textContent: 'Feedback',
-        onclick: onShow.bind(null, 'feedback')
+        onclick: onSelect.bind(null, 'feedback')
       })
     ])
     return node
@@ -801,9 +955,34 @@ function Nav(props) {
     node: node,
     render: render,
     select: select,
-    unselect: unselect
+    unselect: unselect,
+    show: nav.show,
+    hide: nav.hide
   }
 }
+
+function Nav(props) {
+  var node = nav({classes: [props.top ? 'top' : 'bottom', 'hidden', props.className]})
+  var api
+
+  function show() {
+    node.classList.remove('hidden')
+    return api
+  }
+
+  function hide() {
+    node.classList.add('hidden')
+    return api
+  }
+
+  return api = {
+    node: node,
+    show: show,
+    hide: hide,
+    api: api
+  }
+}
+
 
 function ShareReminder() {
   var node = div({className: 'share-reminder'})
@@ -919,6 +1098,8 @@ function App(props) {
   var node = div({className: 'app'})
   var stream
   var history
+  var historyHeader
+  var historyFooter
   var auth
   var menu
   var nav
@@ -956,8 +1137,8 @@ function App(props) {
   }
 
   function render(data) {
-    nav = Nav({
-      onShow: function(name) {
+    nav = MainNav({
+      onSelect: function(name) {
         switch (name) {
           case 'auth':
             return controller.show(auth)
@@ -991,6 +1172,7 @@ function App(props) {
       onTranslate: function(params, callback) {
         props.onTranslate(params.words, callback)
         history.add(params)
+        historyHeader.setProps({canEdit: true}).render()
       },
       onShowJumper: function() {
         jumper.show()
@@ -1012,9 +1194,50 @@ function App(props) {
     history = History({
       onTranslate: function(params, callback) {
         props.onTranslate(params.words, callback)
+      },
+      onShow: function() {
+        historyHeader.show()
+      },
+      onHide: function() {
+        historyHeader.hide()
+      },
+      onSelect: function(params) {
+        historyFooter
+          .setProps({buttonsEnabled: params.selected.length > 0})
+          .render()
       }
     })
     history.render()
+
+    historyHeader = HistoryHeader({
+      canEdit: state.history.length > 0,
+      onEdit: function() {
+        history.setProps({isInEditMode: true}).render()
+        historyHeader.setProps({isEditing: true}).render()
+        historyFooter.show()
+        nav.hide()
+      },
+      onDone: onDoneHistoryEdit
+    })
+    historyHeader.render()
+
+    historyFooter = HistoryFooter({
+      onDelete: function() {
+        history.deleteSelected()
+        if (!state.history.length) onDoneHistoryEdit()
+      }
+    })
+    historyFooter.render()
+    function onDoneHistoryEdit() {
+      history.setProps({isInEditMode: false}).render()
+      historyHeader.setProps({
+        isEditing: false,
+        canEdit: state.history.length > 0
+      }).render()
+      historyFooter.hide()
+      nav.show()
+    }
+
 
     menu = Menu({
       languages: conf.languages,
@@ -1034,6 +1257,8 @@ function App(props) {
       auth.node,
       stream.node,
       history.node,
+      historyHeader.node,
+      historyFooter.node,
       jumper.node,
       menu.node,
       shareReminder.node
