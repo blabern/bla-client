@@ -13,7 +13,9 @@ var error = console.error.bind(console)
 var hasTouch = 'ontouchstart' in window
 
 function assign(a, b) {
-  for (var key in b) a[key] = b[key]
+  for (var key in b) {
+    if (b[key] !== undefined) a[key] = b[key]
+  }
   return a
 }
 
@@ -81,6 +83,7 @@ var section = $.bind(null, 'section')
 var hr = $.bind(null, 'hr')
 var p = $.bind(null, 'p')
 var header = $.bind(null, 'header')
+var h1 = $.bind(null, 'h1')
 var h2 = $.bind(null, 'h2')
 var a = $.bind(null, 'a')
 var ul = $.bind(null, 'ul')
@@ -92,7 +95,8 @@ var state = assign({
   subLang: 'auto',
   trLang: 'en',
   auth: undefined,
-  shareReminderCounter: 0
+  shareReminderCounter: 0,
+  history: []
 }, getState())
 
 function setState(nextState) {
@@ -167,27 +171,18 @@ function Dialog(options) {
 }
 
 function Stream(props) {
-  var node = div({
-    className: 'screen stream hidden',
-    onclick: onSelectWord
-  })
-  var sections
+  var node = div({className: 'screen stream hidden'})
+  var sectionNodes
+  var sections = []
   var reconnect
   var isEmpty = true
   var autoScroll = true
-  var sectionCounter = 0
+  var stream = []
 
   var scrollRenderController = ScrollRenderController({
     node: node,
     onChange: onScrollChange
   })
-
-  function onSelectWord(e) {
-    var node = e.target
-    if (!node.classList.contains('word')) return
-    node.classList.toggle('selected')
-    renderTranslation(node.closest('section'))
-  }
 
   function onScrollChange(state) {
     autoScroll = state.isAtBottom
@@ -197,40 +192,6 @@ function Stream(props) {
 
   function scrollToEnd() {
     node.scrollTop = node.scrollHeight
-  }
-
-  // We need to reuse the instance if its in the same section.
-  var getTranslation = (function() {
-    var map = {}
-    return function(section) {
-      var key = section.dataset.key
-      if (!map[key]) map[key] = Translation()
-      return map[key]
-    }
-  }())
-
-  function renderTranslation(section) {
-    var words = getWords(section)
-    var translation = getTranslation(section)
-
-    if (!words) {
-      removeNode(translation.node)
-      scrollRenderController.check()
-      return
-    }
-
-    props.onTranslate(words, function(data) {
-      translation.render(data)
-      section.appendChild(translation.node)
-      setTimeout(scrollRenderController.check, 100)
-    })
-  }
-
-  function getWords(section) {
-    return toArray(section.querySelectorAll('.selected')).map(function(node) {
-      // Remove spaces and punctuation marks.
-      return node.textContent.trim().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '')
-    }).join(' ')
   }
 
   function renderReconnect() {
@@ -243,32 +204,31 @@ function Stream(props) {
     ])
   }
 
-  function renderWords(text) {
-    return text.split(' ').reduce(function(words, word) {
-      words.push(span({className: 'word', textContent: word}))
-      words.push(span({textContent: ' '}))
-      return words
-    }, [])
-  }
-
   function renderSection(text) {
-    var lines = text.split('\n')
-    return section({
-        dataset: {key: ++sectionCounter}
-      }, [
-      div({className: 'subtitle'}, lines.map(function(line) {
-        return p(renderWords(line))
-      }))
-    ])
+    var section = SubtitleSection({})
+    section.setProps({
+      text: text,
+      isPrimary: true,
+      onTranslate: function(params, callback) {
+        props.onTranslate(params, function(data) {
+          callback(data)
+          setTimeout(scrollRenderController.check, 100)
+        })
+      }
+    })
+    sections.push(section)
+    return section.render()
   }
 
   function append(data) {
     if (isEmpty) {
       reconnect.classList.add('hidden')
-      removeNode(sections.firstChild)
+      removeNode(sectionNodes.firstChild)
       isEmpty = false
     }
-    sections.appendChild(renderSection(data.text))
+    stream.push(data)
+    sections[sections.length - 1].setProps({isPrimary: false}).render()
+    sectionNodes.appendChild(renderSection(data.text))
     if (autoScroll) scrollToEnd()
   }
 
@@ -284,8 +244,10 @@ function Stream(props) {
   }
 
   function render(data) {
+    stream.push(data)
+
     return $(node, [
-      sections = div({className: 'sections'}, [
+      sectionNodes = div({className: 'sections'}, [
         renderSection(data.text)
       ]),
       reconnect = renderReconnect()
@@ -299,6 +261,117 @@ function Stream(props) {
     show: show,
     hide: hide,
     scrollToEnd: scrollToEnd
+  }
+}
+
+function SubtitleSection(props) {
+  var api = {}
+  var node = section()
+  var translation = Translation({})
+  var subtitle = Subtitle({})
+
+  function onSelectWords(param) {
+    if (!param.words.length) {
+      return setProps({
+        selected: '',
+        translation: null
+      }).render()
+    }
+    props.onTranslate({words: param.words, subtitle: props.text}, function(translation) {
+      setProps({translation: translation, selected: param.words}).render()
+    })
+  }
+
+  function setProps(nextProps) {
+    assign(props, nextProps)
+    if (props.translation) {
+      translation.setProps(props.translation)
+    }
+    subtitle.setProps({
+      text: props.text,
+      selected: props.selected,
+      marked: props.marked,
+      isPrimary: props.isPrimary,
+      onSelectWords: onSelectWords
+    })
+    return api
+  }
+
+  function render() {
+    return $(node, {classes: ['subtitle-section', props.className]}, [
+      subtitle.render(),
+      props.translation ? translation.render() : undefined
+    ])
+  }
+
+  return api = {
+    node: node,
+    render: render,
+    setProps: setProps
+  }
+}
+
+function Subtitle(props) {
+  props.selected || (props.selected = '')
+  props.marked || (props.marked = '')
+
+  var api
+  var node = div({
+    onclick: onClickWord
+  })
+
+  function onClickWord(e) {
+    var word = e.target
+    if (!word.classList.contains('word')) return
+    word.classList.toggle('is-selected')
+    props.onSelectWords({node: node, words: getWords()})
+  }
+
+  function clearWord(str) {
+    return str.trim().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '')
+  }
+
+  function getWords() {
+    return toArray(node.querySelectorAll('.is-selected')).map(function(word) {
+      // Remove spaces and punctuation marks.
+      return clearWord(word.textContent)
+    }).join(' ')
+  }
+
+  function renderWords(text) {
+    return text.split(' ').reduce(function(words, word) {
+      var cleanWord = clearWord(word)
+      var isSelected = cleanWord && props.selected.indexOf(cleanWord) !== -1
+      var isMarked = cleanWord && props.marked.indexOf(cleanWord) !== -1
+      words.push(span({
+        classes: ['word', isSelected ? 'is-selected' : '', isMarked ? 'is-marked' : ''],
+        textContent: word
+      }))
+      words.push(span({textContent: ' '}))
+      return words
+    }, [])
+  }
+
+  function setProps(nextProps) {
+    assign(props, nextProps)
+    return api
+  }
+
+  function render() {
+    if (!props.text) return node
+
+    var lines = props.text.split('\n')
+
+    return $(node, {classes: ['subtitle', props.isPrimary ? 'is-primary' : '']},
+      lines.map(function(line) {
+        return p(renderWords(line))
+      })
+    )
+  }
+
+  return api = {
+    render: render,
+    setProps: setProps
   }
 }
 
@@ -323,19 +396,27 @@ function Jumper(props) {
   }
 }
 
-function Translation() {
+function Translation(props) {
+  var api
   var node = div({className: 'translation'})
 
-  function render(data) {
+  function setProps(nextProps) {
+    assign(props, nextProps)
+    return api
+  }
+
+  function render() {
+    if (!props.translation) return node
+
     $(node, [
-      h2({textContent: data.original + ' - ' + data.translation.main}),
-      div(data.translation.others.map(function(tr) {
+      h2({textContent: props.original + ' - ' + props.translation.main}),
+      div(props.translation.others.map(function(tr) {
         return section([
           header({textContent: tr.type}),
           p({innerHTML: tr.translations.join('<br />')})
         ])
       })),
-      div(data.translation.thesaurus.map(function(tr) {
+      div(props.translation.thesaurus.map(function(tr) {
         return section([
           header({textContent: tr.type}),
           p(tr.translations.map(function(tr) {
@@ -344,12 +425,105 @@ function Translation() {
         ])
       }))
     ])
+
     return node
+  }
+
+  return api = {
+    node: node,
+    render: render,
+    setProps: setProps
+  }
+}
+
+function History(props) {
+  var node = div({className: 'screen history hidden'})
+  var lastHistoryLength = state.history.length
+
+  function isSameDay(date1, date2) {
+    return date1.getDate() === date2.getDate() &&
+      date1.getMonth() === date2.getMonth() &&
+      date1.getYear() === date2.getYear()
+  }
+
+  function add(params) {
+    var entry = state.history.filter(function(entry) {
+      return entry.subtitle === params.subtitle
+    })[0]
+
+    if (entry) {
+      // Add new lookups to the entry.
+      entry.words = params.words
+    } else {
+      state.history.push({
+        time: Date.now(),
+        subtitle: params.subtitle,
+        words: params.words
+      })
+    }
+
+    setState(state)
+    render()
+  }
+
+  function show() {
+    if (state.history.length !== lastHistoryLength) {
+      lastHistoryLength = state.history.length
+      render()
+    }
+    node.classList.remove('hidden')
+  }
+
+  function hide() {
+    node.classList.add('hidden')
+  }
+
+  function renderSeparator(date) {
+    var dateStr = date.getDate() + '.' + (date.getMonth() + 1) + '.' + date.getFullYear()
+    return div({className: 'separator'}, [
+      span({textContent: dateStr})
+    ])
+  }
+
+  function renderSection(entry) {
+    return SubtitleSection({}).setProps({
+      text: entry.subtitle,
+      marked: entry.words,
+      isPrimary: true,
+      className: 'history-section',
+      onTranslate: props.onTranslate
+    }).render()
+  }
+
+  function render() {
+    if (!state.history.length) {
+      return $(node, [
+        div({className: 'empty'}, [
+          h1({textContent: 'Nothing found.'}),
+          p({textContent: 'Click on subtitles to translate.'})
+        ])
+      ])
+    }
+
+    rows = state.history.reduce(function(rows, entry, i, entries) {
+      var prevEntry = entries[i - 1]
+      var currDate = new Date(entry.time)
+      if (!prevEntry || !isSameDay(new Date(prevEntry.time), currDate)) {
+        rows.push(renderSeparator(currDate))
+      }
+      rows.push(renderSection(entry))
+      return rows
+    }, [])
+
+    return $(node, rows)
   }
 
   return {
     node: node,
-    render: render
+    render: render,
+    show: show,
+    hide: hide,
+    add: add
   }
 }
 
@@ -604,8 +778,13 @@ function Nav(props) {
         textContent: 'Subtitles',
         onclick: onShow.bind(null, 'stream')
       }),
+      items.history = button({
+        className: 'icon-button history-button',
+        textContent: 'History',
+        onclick: onShow.bind(null, 'history')
+      }),
       items.menu = button({
-        className: 'icon-button menu-button',
+        className: 'icon-button settings-button',
         textContent: 'Settings',
         onclick: onShow.bind(null, 'menu')
       }),
@@ -739,6 +918,7 @@ function RenderController(props) {
 function App(props) {
   var node = div({className: 'app'})
   var stream
+  var history
   var auth
   var menu
   var nav
@@ -755,6 +935,8 @@ function App(props) {
           return nav.select('menu')
         case auth:
           return nav.select('auth')
+        case history:
+          return nav.select('history')
       }
     }
   })
@@ -774,44 +956,17 @@ function App(props) {
   }
 
   function render(data) {
-    stream = Stream({
-      onTranslate: props.onTranslate,
-      onShowJumper: function() {
-        jumper.show()
-      },
-      onHideJumper: function() {
-        jumper.hide()
-      },
-      onReconnect: function() {
-        auth.clear()
-        controller.show(auth)
-      }
-    })
-
-    jumper = Jumper({
-      onScrollToEnd: stream.scrollToEnd
-    })
-
-    menu = Menu({
-      languages: conf.languages,
-      onChangeSubLang: function(value) {
-        setState({subLang: value})
-      },
-      onChangeTrLang: function(value) {
-        setState({trLang: value})
-      }
-    })
-    menu.render()
-
     nav = Nav({
       onShow: function(name) {
         switch (name) {
-          case 'menu':
-            return controller.show(menu)
-          case 'stream':
-            return controller.show(stream)
           case 'auth':
             return controller.show(auth)
+          case 'stream':
+            return controller.show(stream)
+          case 'history':
+            return controller.show(history)
+          case 'menu':
+            return controller.show(menu)
           case 'feedback':
             feedback()
             return false
@@ -832,14 +987,55 @@ function App(props) {
     })
     auth.render()
 
+    stream = Stream({
+      onTranslate: function(params, callback) {
+        props.onTranslate(params.words, callback)
+        history.add(params)
+      },
+      onShowJumper: function() {
+        jumper.show()
+      },
+      onHideJumper: function() {
+        jumper.hide()
+      },
+      onReconnect: function() {
+        auth.clear()
+        controller.show(auth)
+      }
+    })
+    stream.render({text: data.subtitle})
+
+    jumper = Jumper({
+      onScrollToEnd: stream.scrollToEnd
+    })
+
+    history = History({
+      onTranslate: function(params, callback) {
+        props.onTranslate(params.words, callback)
+      }
+    })
+    history.render()
+
+    menu = Menu({
+      languages: conf.languages,
+      onChangeSubLang: function(value) {
+        setState({subLang: value})
+      },
+      onChangeTrLang: function(value) {
+        setState({trLang: value})
+      }
+    })
+    menu.render()
+
     shareReminder = new ShareReminder()
 
     $(node, [
-      stream.render({text: data.subtitle}),
-      menu.node,
-      auth.node,
       nav.node,
+      auth.node,
+      stream.node,
+      history.node,
       jumper.node,
+      menu.node,
       shareReminder.node
     ])
 
@@ -920,7 +1116,6 @@ function Api(props) {
     authorize: authorize
   }
 }
-
 
 function init() {
   MBP.enableActive()

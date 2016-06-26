@@ -88,15 +88,19 @@ a:visited {
   text-align: center;
   margin-top: 20px;
 }
-.stream .sections > section {
+
+/* Subtitle Section */
+.subtitle-section {
   padding: 7px 0;
   text-align: center;
 }
-.stream .sections > section:last-child .subtitle {
-  color: #fff;
-}
+
+/* Subtitle */
 .subtitle {
   color: #909090;
+}
+.subtitle.is-primary {
+  color: #fff;
 }
 .subtitle p {
   text-align: center;
@@ -112,9 +116,21 @@ a:visited {
   padding: 0 2px;
 }
 .subtitle .word:active,
-.subtitle .word.selected {
+.subtitle .word.is-selected {
   background: #1BA2F9;
   color: #fff;
+}
+.subtitle .word.is-marked {
+  text-decoration: underline;
+}
+/* Translation */
+.translation {
+  display: inline-block;
+  text-align: left;
+  min-width: 50%;
+}
+.translation section p {
+  margin-left: 20px;
 }
 .translation {
   display: inline-block;
@@ -123,6 +139,38 @@ a:visited {
 }
 .translation section p {
   margin-left: 20px;
+}
+
+/* History */
+.history .empty {
+  text-align: center;
+  margin-top: 30vh;
+}
+.history .history-section {
+  font-size: 0.8em;
+}
+.history .separator {
+  position: relative;
+  text-align: center;
+  margin-bottom: 20px;
+}
+.history .separator:before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  height: 1px;
+  width: 100%;
+  background: #fff;
+  margin: 0;
+}
+.history .separator span {
+  position: relative;
+  font-weight: bold;
+  padding: 3px 1em;
+  border: 1px solid #fff;
+  border-radius: 1em;
+  background: #000;
 }
 
 /* Jumper */
@@ -281,6 +329,7 @@ a:visited {
   text-align: center;
   background: rgba(28,28,28,0.95);
   border-top: 1px solid #3E3E3E;
+  z-index: 1;
 }
 .nav button {
   color: rgba(255, 255, 255, 0.7);
@@ -307,6 +356,15 @@ a:visited {
   background-image: url(../img/icons/cinema-active.svg);
 }
 
+.nav .history-button {
+  background-image: url(../img/icons/favorite.svg);
+}
+.nav .history-button:active,
+.nav .history-button.selected {
+  background-image: url(../img/icons/favorite-active.svg);
+}
+
+
 .nav .auth-button {
   background-image: url(../img/icons/connection.svg);
 }
@@ -315,11 +373,11 @@ a:visited {
   background-image: url(../img/icons/connection-active.svg);
 }
 
-.nav .menu-button {
+.nav .settings-button {
   background-image: url(../img/icons/tool.svg);
 }
-.nav .menu-button:active,
-.nav .menu-button.selected {
+.nav .settings-button:active,
+.nav .settings-button.selected {
   background-image: url(../img/icons/tool-active.svg);
 }
 
@@ -396,4 +454,5 @@ body:after {
     url(../img/icons/tool-active.svg)
     url(../img/icons/speech-bubble.svg)
     url(../img/icons/speech-bubble-active.svg)
+    url(../img/icons/favorite.svg)
 }
