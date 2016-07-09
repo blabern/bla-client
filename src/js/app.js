@@ -271,7 +271,7 @@ function Stream(props) {
 
 function SubtitleSection(props) {
   props.theme || (props.theme = {classes: {}})
-  var api = {}
+  var api
   var node = section()
   var translation = Translation({})
   var subtitle = Subtitle({})
@@ -279,10 +279,11 @@ function SubtitleSection(props) {
   function onSelectWords(param) {
     if (!param.words.length) {
       return setProps({
-        selected: '',
+        selected: [],
         translation: null
       }).render()
     }
+
     props.onTranslate({words: param.words, subtitle: props.text}, function(translation) {
       setProps({translation: translation, selected: param.words}).render()
     })
@@ -320,8 +321,8 @@ function SubtitleSection(props) {
 }
 
 function Subtitle(props) {
-  props.selected || (props.selected = '')
-  props.marked || (props.marked = '')
+  props.selected || (props.selected = [])
+  props.marked || (props.marked = [])
   props.isSelectable !== undefined || (props.isSelectable = true)
 
   var api
@@ -333,25 +334,53 @@ function Subtitle(props) {
     var word = e.target
     if (!props.isSelectable || !word.classList.contains('word')) return
     word.classList.toggle('is-selected')
-    props.onSelectWords({node: node, words: getWords()})
+    props.onSelectWords({node: node, words: getSelectedWords()})
   }
 
   function clearWord(str) {
     return str.trim().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '')
   }
 
-  function getWords() {
-    return toArray(node.querySelectorAll('.is-selected')).map(function(word) {
-      // Remove spaces and punctuation marks.
+  function splitText(text) {
+    return text.split(/\s/).map(function(word) {
+      return clearWord(word)
+    })
+  }
+
+  function getSelectedWords() {
+    var allWords = splitText(props.text)
+    var selectedWords = toArray(node.querySelectorAll('.is-selected'))
+
+    // Remove spaces and punctuation marks.
+    selectedWords = selectedWords.map(function(word) {
       return clearWord(word.textContent)
-    }).join(' ')
+    })
+
+    // Create a map of words with word position. Position is required
+    // for sentences where same word is used more than once.
+    selectedWords = selectedWords.map(function(word) {
+      return {
+        pos: allWords.indexOf(word),
+        text: word
+      }
+    })
+
+    return selectedWords
+  }
+
+  function hasWord(text, selectedWords, pos) {
+    if (!text) return false
+    var word = selectedWords.filter(function(word) {
+      return word.text === text && word.pos === pos
+    })[0]
+    return Boolean(word)
   }
 
   function renderWords(text) {
-    return text.split(' ').reduce(function(words, word) {
+    return text.split(/\s/).reduce(function(words, word, pos) {
       var cleanWord = clearWord(word)
-      var isSelected = cleanWord && props.selected.split(' ').indexOf(cleanWord) !== -1
-      var isMarked = cleanWord && props.marked.split(' ').indexOf(cleanWord) !== -1
+      var isSelected = hasWord(cleanWord, props.selected, pos)
+      var isMarked = hasWord(cleanWord, props.marked, pos)
 
       words.push(span({
         classes: [
@@ -1131,6 +1160,13 @@ function App(props) {
     controller.show(stream)
   }
 
+  function onTranslate(words, callback) {
+    words = words.map(function(word) {
+      return word.text
+    }).join(' ')
+    props.onTranslate(words, callback)
+  }
+
   function requestAuthorization() {
     if (!state.auth) controller.show(auth)
     else props.onAuthorize(state.auth)
@@ -1170,7 +1206,7 @@ function App(props) {
 
     stream = Stream({
       onTranslate: function(params, callback) {
-        props.onTranslate(params.words, callback)
+        onTranslate(params.words, callback)
         history.add(params)
         historyHeader.setProps({canEdit: true}).render()
       },
@@ -1193,7 +1229,7 @@ function App(props) {
 
     history = History({
       onTranslate: function(params, callback) {
-        props.onTranslate(params.words, callback)
+        onTranslate(params.words, callback)
       },
       onShow: function() {
         historyHeader.show()
