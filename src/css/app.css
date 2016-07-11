@@ -193,6 +193,8 @@ a:visited {
 .history .edit-mode-container {
   display: flex;
   cursor: pointer;
+  /* Current width + input width to make text width remain the same and avoid jumps. */
+  width: calc(100% + 56px);
 }
 .history .edit-mode-container input {
   align-self: center;
