@@ -369,24 +369,33 @@ function Subtitle(props) {
     return Boolean(word)
   }
 
-  function renderWords(text) {
-    return text.split(/\s/).reduce(function(words, word, pos) {
-      var cleanWord = clearWord(word)
-      var isSelected = hasWord(cleanWord, props.selected, pos)
-      var isMarked = hasWord(cleanWord, props.marked, pos)
+  function renderSubtitle(text) {
+    var pos = 0
 
-      words.push(span({
-        classes: [
-          'word',
-          isSelected ? 'is-selected' : '',
-          isMarked ? 'is-marked' : '',
-          props.isSelectable ? 'is-selectable' : ''
-        ],
-        textContent: word
-      }))
-      words.push(span({textContent: ' '}))
-      return words
-    }, [])
+    function renderLine(line) {
+      return line.split(' ').reduce(function(elements, word) {
+        var cleanWord = clearWord(word)
+        var isSelected = hasWord(cleanWord, props.selected, pos)
+        var isMarked = hasWord(cleanWord, props.marked, pos)
+
+        elements.push(span({
+          classes: [
+            'word',
+            isSelected ? 'is-selected' : '',
+            isMarked ? 'is-marked' : '',
+            props.isSelectable ? 'is-selectable' : ''
+          ],
+          textContent: word
+        }))
+        elements.push(span({textContent: ' '}))
+        pos++
+        return elements
+      }, [])
+    }
+
+    return text.split('\n').map(function(line) {
+      return p(renderLine(line))
+    })
   }
 
   function setProps(nextProps) {
@@ -397,17 +406,12 @@ function Subtitle(props) {
   function render() {
     if (!props.text) return node
 
-    var lines = props.text.split('\n')
     var classes = [
       'subtitle',
       props.isPrimary ? 'is-primary' : '',
       props.className
     ]
-    return $(node, {classes: classes},
-      lines.map(function(line) {
-        return p(renderWords(line))
-      })
-    )
+    return $(node, {classes: classes}, renderSubtitle(props.text))
   }
 
   return api = {
