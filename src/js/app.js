@@ -348,24 +348,17 @@ function Subtitle(props) {
   }
 
   function getSelectedWords() {
-    var allWords = splitText(props.text)
-    var selectedWords = toArray(node.querySelectorAll('.is-selected'))
+    var wordNodes = toArray(node.querySelectorAll('.word'))
 
-    // Remove spaces and punctuation marks.
-    selectedWords = selectedWords.map(function(word) {
-      return clearWord(word.textContent)
-    })
-
-    // Create a map of words with word position. Position is required
-    // for sentences where same word is used more than once.
-    selectedWords = selectedWords.map(function(word) {
-      return {
-        pos: allWords.indexOf(word),
-        text: word
+    return wordNodes.reduce(function(selectedWords, node, pos) {
+      if (node.classList.contains('is-selected')) {
+        selectedWords.push({
+          pos: pos,
+          text: clearWord(node.textContent)
+        })
       }
-    })
-
-    return selectedWords
+      return selectedWords
+    }, [])
   }
 
   function hasWord(text, selectedWords, pos) {
@@ -1359,7 +1352,11 @@ function Api(props) {
         return res.text()
       })
       .then(function(text) {
-        callback(JSON.parse(text))
+        try {
+          callback(JSON.parse(text))
+        } catch (err) {
+          error(err)
+        }
       })
       .catch(error)
 
