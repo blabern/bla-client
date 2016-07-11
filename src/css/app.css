@@ -194,11 +194,11 @@ a:visited {
   display: flex;
   cursor: pointer;
   /* Current width + input width to make text width remain the same and avoid jumps. */
-  width: calc(100% + 56px);
+  width: calc(100% + 36px);
 }
 .history .edit-mode-container input {
   align-self: center;
-  margin: 0 20px;
+  margin: 0 10px;
   flex-shrink: 0;
 }
 
