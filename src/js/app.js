@@ -909,7 +909,12 @@
 
   function NumPad(props) {
     var node = div({ classes: ["num-pad", props.className] });
-    var layout = [[1, 2, 3], [4, 5, 6], [7, 8, 9], [0]];
+    var layout = [
+      [1, 2, 3],
+      [4, 5, 6],
+      [7, 8, 9],
+      ["delete", 0, "enter"],
+    ];
 
     function renderNumbers() {
       return layout.map(function (row) {
@@ -975,16 +980,26 @@
     });
     var code;
     var numPad;
-    var length = 4;
     var help;
 
     function onInputFromNumPad(val) {
+      if (val === "enter") {
+        return props.onAuthorize(code.value);
+      }
+      if (val === "delete") {
+        return clear();
+      }
       code.value += val;
       changed();
     }
 
-    function onKeyPress() {
-      setTimeout(changed);
+    function onKeyPress(e) {
+      setTimeout(() => {
+        if (e.key === "Enter") {
+          return props.onAuthorize(code.value);
+        }
+        changed();
+      });
     }
 
     function onHelp() {
@@ -994,9 +1009,6 @@
     function changed() {
       var value = code.value;
       props.onChange(value);
-      if (value.length === length) {
-        props.onAuthorize(value);
-      }
     }
 
     function hide() {
@@ -1032,7 +1044,6 @@
         }),
         (code = input({
           classes: ["code", "control"],
-          maxlength: length,
           readonly: numPad ? true : undefined,
           value: props.value || "",
           onkeypress: onKeyPress,
@@ -1042,11 +1053,6 @@
           classes: ["text-button", "help"],
           textContent: "Help",
           onclick: onHelp,
-        }),
-        button({
-          classes: ["text-button", "clear"],
-          textContent: "Clear",
-          onclick: clear,
         }),
         help.render(),
       ]);
@@ -1356,6 +1362,7 @@
           setState({ auth: value });
         },
         onAuthorize: function (value) {
+          if (!value) return;
           controller.show(stream);
           props.onAuthorize(value);
         },
