@@ -294,40 +294,6 @@ a:visited {
   background: #3e3e3e;
 }
 
-/* Numeric Keyboard */
-.num-pad {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: center;
-}
-.num-pad .number {
-  font-size: 1.3em;
-  line-height: 2em;
-  font-weight: 100;
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  border-radius: 50%;
-  background: none;
-  color: #fff;
-  cursor: pointer;
-  height: 11vh;
-  width: 11vh;
-  margin-right: 5%;
-  margin-bottom: 2vh;
-}
-@media all and (orientation: landscape) {
-  .num-pad .number {
-    height: 17vh;
-    width: 17vh;
-  }
-}
-.num-pad .row {
-  width: 100%;
-}
-.num-pad .number:active {
-  background: rgba(255, 255, 255, 0.7);
-}
-
 /* Auth */
 .auth {
   text-align: center;
@@ -354,9 +320,6 @@ a:visited {
   flex-grow: 0;
   flex-shrink: 0;
   color: #fff;
-}
-.auth .touch-keyboard {
-  flex-basis: 100%;
 }
 .auth .help {
   position: absolute;

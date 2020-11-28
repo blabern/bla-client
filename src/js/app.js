@@ -907,42 +907,6 @@
     };
   }
 
-  function NumPad(props) {
-    var node = div({ classes: ["num-pad", props.className] });
-    var layout = [
-      [1, 2, 3],
-      [4, 5, 6],
-      [7, 8, 9],
-      ["delete", 0, "enter"],
-    ];
-
-    function renderNumbers() {
-      return layout.map(function (row) {
-        return div(
-          { className: "row" },
-          row.map(function (num) {
-            return button({
-              className: "number",
-              textContent: num,
-              onclick: props.onInput.bind(null, num),
-            });
-          })
-        );
-      });
-    }
-
-    function render() {
-      var numbers = renderNumbers();
-      $(node, numbers);
-      return node;
-    }
-
-    return {
-      node: node,
-      render: render,
-    };
-  }
-
   function AuthHelp() {
     var dialog;
 
@@ -979,19 +943,7 @@
       classes: ["screen", "auth", "hidden", hasTouch ? "" : "has-keyboard"],
     });
     var code;
-    var numPad;
     var help;
-
-    function onInputFromNumPad(val) {
-      if (val === "enter") {
-        return props.onAuthorize(code.value);
-      }
-      if (val === "delete") {
-        return clear();
-      }
-      code.value += val;
-      changed();
-    }
 
     function onKeyPress(e) {
       setTimeout(() => {
@@ -1017,25 +969,13 @@
 
     function show() {
       node.classList.remove("hidden");
-      if (!numPad) {
-        code.focus();
-      }
+      code.focus();
     }
 
-    function clear() {
-      code.value = "";
-      props.onChange("");
-    }
+    function clear() {}
 
     function render() {
-      if (hasTouch) {
-        numPad = NumPad({
-          className: "touch-keyboard",
-          onInput: onInputFromNumPad,
-        });
-      }
       help = new AuthHelp();
-
       $(node, [
         p({
           className: "info",
@@ -1044,11 +984,9 @@
         }),
         (code = input({
           classes: ["code", "control"],
-          readonly: numPad ? true : undefined,
           value: props.value || "",
           onkeypress: onKeyPress,
         })),
-        numPad && numPad.render(),
         button({
           classes: ["text-button", "help"],
           textContent: "Help",
