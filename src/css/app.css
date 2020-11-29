@@ -101,10 +101,6 @@ a:visited {
 /* Stream */
 .stream {
 }
-.stream .reconnect-container {
-  text-align: center;
-  margin-top: 20px;
-}
 
 /* Subtitle Section */
 .subtitle-section {
@@ -295,55 +291,43 @@ a:visited {
 }
 
 /* Auth */
-.auth {
+.login {
   text-align: center;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   align-items: center;
   bottom: 50px;
 }
-.auth.has-keyboard {
-  padding-top: 30vh;
-}
-.auth .info {
-  margin-top: 0;
-  flex-grow: 0;
-  flex-shrink: 0;
-}
-.auth .code {
-  text-align: center;
+.login .welcome {
   font-size: 2em;
-  width: 5.8em;
-  margin-bottom: 3vh;
-  letter-spacing: 0.3em;
-  padding: 4px 12px;
   flex-grow: 0;
   flex-shrink: 0;
-  color: #fff;
 }
-.auth .help {
+.login .help {
   position: absolute;
   bottom: 10px;
   left: 10px;
 }
 
-/* Auth Help */
-.auth-help {
+/* Connect help */
+.connect-help {
   color: #000;
-  padding: 15px;
+  margin: 15px;
+  padding-left: 1em;
   text-align: left;
 }
-.auth-help h2 {
+.connect-help h2 {
   text-align: center;
 }
-.auth-help li {
+.connect-help li {
   list-style-type: decimal;
 }
-.auth-help .actions-bar {
+.connect-help .actions-bar {
   text-align: right;
   margin: 10px 0 10px 0;
 }
-.auth-help .done {
+.connect-help .done {
   color: #000;
 }
 
@@ -385,11 +369,11 @@ a:visited {
   background-image: url(../img/icons/favorite-active.svg);
 }
 
-.main-nav .auth-button {
+.main-nav .login-button {
   background-image: url(../img/icons/connection.svg);
 }
-.main-nav .auth-button:active,
-.main-nav .auth-button.selected {
+.main-nav .login-button:active,
+.main-nav .login-button.selected {
   background-image: url(../img/icons/connection-active.svg);
 }
 

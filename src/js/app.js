@@ -291,7 +291,6 @@
     var node = div({ className: "screen stream hidden" });
     var sectionNodes;
     var sections = [];
-    var reconnect;
     var isEmpty = true;
     var autoScroll = true;
     var stream = [];
@@ -309,16 +308,6 @@
 
     function scrollToEnd() {
       node.scrollTop = node.scrollHeight;
-    }
-
-    function renderReconnect() {
-      return div({ className: "reconnect-container" }, [
-        button({
-          classes: ["control", "reconnect"],
-          textContent: "Reconnect",
-          onclick: props.onReconnect,
-        }),
-      ]);
     }
 
     function renderSection(text) {
@@ -339,7 +328,6 @@
 
     function append(data) {
       if (isEmpty) {
-        reconnect.classList.add("hidden");
         removeNode(sectionNodes.firstChild);
         isEmpty = false;
       }
@@ -367,7 +355,6 @@
         (sectionNodes = div({ className: "sections" }, [
           renderSection(data.text),
         ])),
-        (reconnect = renderReconnect()),
       ]);
     }
 
@@ -738,7 +725,7 @@
       } else {
         content = [
           div({ className: "empty" }, [
-            h1({ textContent: "Nothing found." }),
+            h1({ textContent: "No entries found" }),
             p({ textContent: "Click on subtitles to translate." }),
           ]),
         ];
@@ -907,23 +894,24 @@
     };
   }
 
-  function AuthHelp() {
+  function ConnectHelp() {
     var dialog;
 
     function onHide() {
       dialog.hide();
     }
 
-    var content = div({ className: "auth-help" }, [
-      h2({ textContent: "Please make sure:" }),
+    var content = ul({ className: "connect-help" }, [
+      h2({ textContent: "Please make sure that:" }),
       li({
-        textContent: "Both devices, desktop and phone have internet access.",
+        textContent:
+          "Chrome Extension on your desktop browser is installed and you are logged in.",
       }),
+      li({ textContent: "You are logged in here, in the app." }),
       li({
-        textContent: "Chrome Extension on your desktop browser is installed.",
+        textContent:
+          "Movie is playing and subtitles are showing on the main screen.",
       }),
-      li({ textContent: "Verification code from extension is correct." }),
-      li({ textContent: "Movie is playing and subtitles are on the screen." }),
       div({ classes: ["actions-bar"] }, [
         button({
           classes: ["control", "done"],
@@ -938,29 +926,95 @@
     return dialog;
   }
 
-  function Auth(props) {
+  function Login(props) {
     var node = div({
-      classes: ["screen", "auth", "hidden", hasTouch ? "" : "has-keyboard"],
+      classes: ["screen", "login", "hidden"],
     });
-    var code;
     var help;
+    var loginButtonEl;
+    var isUrlAuth = /state=/.test(location.search);
+    var authStateMachine = {
+      state: "pending",
+      pending: {
+        welcome: false,
+        login: false,
+        loading: true,
+      },
+      authorized: {
+        welcome: true,
+        login: false,
+        loading: false,
+      },
+      unauthorized: {
+        welcome: false,
+        login: true,
+        loading: false,
+      },
+      get(view) {
+        return this[this.state][view];
+      },
+    };
 
-    function onKeyPress(e) {
-      setTimeout(() => {
-        if (e.key === "Enter") {
-          return props.onAuthorize(code.value);
-        }
-        changed();
+    var okta = new OktaAuth({
+      issuer: "https://dev-9102151.okta.com/oauth2/default",
+      clientId: "0oa1egchtJEA4o9dF5d6",
+      redirectUri: location.origin,
+    });
+
+    function getUser() {
+      return Promise.all([
+        okta.tokenManager.get("accessToken"),
+        okta.tokenManager.get("idToken"),
+      ]).then(function ([accessToken, idToken]) {
+        return okta.getUser(accessToken, idToken);
       });
+    }
+
+    function authorizeWithRedirect(call) {
+      okta.token.getWithRedirect({
+        scopes: ["openid", "email"],
+      });
+    }
+
+    // We are getting redirected from the okta login service
+    // with query params in the url containing session data.
+    function setTokensFromUrl() {
+      return okta.token.parseFromUrl().then(function (res) {
+        log("Token from URL", res);
+        okta.tokenManager.setTokens(res.tokens);
+      });
+    }
+
+    isUrlAuth &&
+      (function () {
+        setTokensFromUrl()
+          .then(function () {
+            getUser()
+              .then(function (user) {
+                log("authorized user", user);
+                authStateMachine.state = "authorized";
+                render();
+                props.onLogin(user.sub);
+              })
+              .catch(function (err) {
+                log(err.message);
+                authStateMachine.state = "unauthorized";
+                render();
+              });
+          })
+          .catch(function (err) {
+            log(err.message);
+          });
+      })();
+
+    function onLogin(e) {
+      authStateMachine.state = "pending";
+      render();
+      authorizeWithRedirect();
     }
 
     function onHelp() {
       help.show();
-    }
-
-    function changed() {
-      var value = code.value;
-      props.onChange(value);
     }
 
     function hide() {
@@ -969,24 +1023,40 @@
 
     function show() {
       node.classList.remove("hidden");
-      code.focus();
+      if (isUrlAuth) return;
+      getUser()
+        .then(function (user) {
+          log("User", user);
+          authStateMachine.state = "authorized";
+          render();
+        })
+        .catch(function (err) {
+          authStateMachine.state = "unauthorized";
+          render();
+          log(err.message);
+        });
     }
 
-    function clear() {}
-
     function render() {
-      help = new AuthHelp();
+      help = help || new ConnectHelp();
       $(node, [
         p({
-          className: "info",
-          innerHTML:
-            "Click on Lingvo Extension <br />in your Browser to get the Code.",
+          classes: ["welcome", !authStateMachine.get("welcome") && "hidden"],
+          innerHTML: "Welcome to LingvoTV, <br /> you are logged in!",
         }),
-        (code = input({
-          classes: ["code", "control"],
-          value: props.value || "",
-          onkeypress: onKeyPress,
-        })),
+        p({
+          classes: ["loading", !authStateMachine.get("loading") && "hidden"],
+          innerHTML: "Loading…",
+        }),
+        button({
+          classes: [
+            "login",
+            "control",
+            !authStateMachine.get("login") && "hidden",
+          ],
+          textContent: "Login",
+          onclick: onLogin,
+        }),
         button({
           classes: ["text-button", "help"],
           textContent: "Help",
@@ -1003,7 +1073,6 @@
       render: render,
       hide: hide,
       show: show,
-      clear: clear,
     };
   }
 
@@ -1033,10 +1102,10 @@
 
     function render() {
       $(node, [
-        (items.auth = button({
-          className: "icon-button auth-button",
-          textContent: "Connect",
-          onclick: onSelect.bind(null, "auth"),
+        (items.login = button({
+          className: "icon-button login-button",
+          textContent: "Login",
+          onclick: onSelect.bind(null, "login"),
         })),
         (items.stream = button({
           className: "icon-button stream-button",
@@ -1229,7 +1298,7 @@
     var history;
     var historyHeader;
     var historyFooter;
-    var auth;
+    var login;
     var menu;
     var nav;
     var controller;
@@ -1243,8 +1312,8 @@
             return nav.select("stream");
           case menu:
             return nav.select("menu");
-          case auth:
-            return nav.select("auth");
+          case login:
+            return nav.select("login");
           case history:
             return nav.select("history");
         }
@@ -1256,9 +1325,7 @@
       shareReminder.onSubtitle(data);
     }
 
-    function onAuthorized() {
-      controller.show(stream);
-    }
+    function onLogind() {}
 
     function onTranslate(words, callback) {
       words = words
@@ -1270,16 +1337,16 @@
     }
 
     function requestAuthorization() {
-      if (!state.auth) controller.show(auth);
-      else props.onAuthorize(state.auth);
+      if (!state.auth) controller.show(login);
+      else props.onLogin(state.auth);
     }
 
     function render(data) {
       nav = MainNav({
         onSelect: function (name) {
           switch (name) {
-            case "auth":
-              return controller.show(auth);
+            case "login":
+              return controller.show(login);
             case "stream":
               return controller.show(stream);
             case "history":
@@ -1294,18 +1361,17 @@
       });
       nav.render();
 
-      auth = Auth({
+      login = Login({
         value: state.auth,
         onChange: function (value) {
           setState({ auth: value });
         },
-        onAuthorize: function (value) {
+        onLogin: function (value) {
           if (!value) return;
-          controller.show(stream);
-          props.onAuthorize(value);
+          props.onLogin(value);
         },
       });
-      auth.render();
+      login.render();
 
       stream = Stream({
         onTranslate: function (params, callback) {
@@ -1318,10 +1384,6 @@
         },
         onHideJumper: function () {
           jumper.hide();
-        },
-        onReconnect: function () {
-          auth.clear();
-          controller.show(auth);
         },
       });
       stream.render({ text: data.subtitle });
@@ -1394,7 +1456,7 @@
 
       $(node, [
         nav.node,
-        auth.node,
+        login.node,
         stream.node,
         history.node,
         historyHeader.node,
@@ -1411,7 +1473,7 @@
       node: node,
       render: render,
       onSubtitle: onSubtitle,
-      onAuthorized: onAuthorized,
+      onLogind: onLogind,
       requestAuthorization: requestAuthorization,
     };
   }
@@ -1434,7 +1496,7 @@
 
       socket.on("authorized", function (code) {
         log("Connection authorized:", code);
-        props.onAuthorized();
+        props.onLogind();
       });
 
       socket.on("subtitle", function (data) {
@@ -1497,19 +1559,19 @@
       onRequestAuth: function () {
         app.requestAuthorization();
       },
-      onAuthorized: function () {
-        app.onAuthorized();
+      onLogind: function () {
+        app.onLogind();
       },
     });
 
     app = App({
       onTranslate: api.translate,
-      onAuthorize: api.authorize,
+      onLogin: api.authorize,
     });
 
     api.connect();
     // People don't expect that they receive subtitles only if they play the movie.
-    app.render({ subtitle: "Play movie to receive subtitles." });
+    app.render({ subtitle: "Start playing a movie to receive subtitles…" });
 
     document.body.appendChild(app.node);
   }
