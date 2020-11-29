@@ -976,7 +976,7 @@
 
   function Auth(props) {
     var node = div({
-      classes: ["screen", "auth", "hidden", hasTouch ? "" : "has-keyboard"],
+      classes: ["screen", "auth", "hidden"],
     });
     var code;
     var numPad;
@@ -1028,27 +1028,19 @@
     }
 
     function render() {
-      if (hasTouch) {
-        numPad = NumPad({
-          className: "touch-keyboard",
-          onInput: onInputFromNumPad,
-        });
-      }
       help = new AuthHelp();
 
       $(node, [
         p({
           className: "info",
           innerHTML:
-            "Click on Lingvo Extension <br />in your Browser to get the Code.",
+            "Click on LingvoTV Chrome Extension <br />in your browser to get the code",
         }),
         (code = input({
           classes: ["code", "control"],
-          readonly: numPad ? true : undefined,
           value: props.value || "",
           onkeypress: onKeyPress,
         })),
-        numPad && numPad.render(),
         button({
           classes: ["text-button", "help"],
           textContent: "Help",

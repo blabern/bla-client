@@ -340,16 +340,16 @@ a:visited {
   padding-top: 30vh;
 }
 .auth .info {
-  margin-top: 0;
+  margin-top: 20vh;
   flex-grow: 0;
   flex-shrink: 0;
 }
 .auth .code {
   text-align: center;
   font-size: 2em;
-  width: 5.8em;
+  width: 10em;
+  max-width: 80vw;
   margin-bottom: 3vh;
-  letter-spacing: 0.3em;
   padding: 4px 12px;
   flex-grow: 0;
   flex-shrink: 0;
