@@ -348,12 +348,12 @@
       node.classList.add("hidden");
     }
 
-    function render(data) {
-      stream.push(data);
-
+    function render() {
       return $(node, [
         (sectionNodes = div({ className: "sections" }, [
-          renderSection(data.text),
+          // Initial entry
+          // People don't expect that they receive subtitles only if they play the movie.
+          renderSection("Start playing a movie to receive subtitles…"),
         ])),
       ]);
     }
@@ -1104,7 +1104,7 @@
       $(node, [
         (items.login = button({
           className: "icon-button login-button",
-          textContent: "Login",
+          textContent: "Connect",
           onclick: onSelect.bind(null, "login"),
         })),
         (items.stream = button({
@@ -1182,7 +1182,9 @@
 
     function renderShare() {
       var content = div({ className: "social-share" }, [
-        h2({ textContent: "Support Lingvo TV by sharing it with friends!" }),
+        h2({
+          textContent: "Share LingvoTV with friends and receive an upgrade!",
+        }),
         div(
           {
             className: "ssk-block",
@@ -1325,7 +1327,7 @@
       shareReminder.onSubtitle(data);
     }
 
-    function onLogind() {}
+    function onLogin() {}
 
     function onTranslate(words, callback) {
       words = words
@@ -1386,7 +1388,7 @@
           jumper.hide();
         },
       });
-      stream.render({ text: data.subtitle });
+      stream.render();
 
       jumper = Jumper({
         onScrollToEnd: stream.scrollToEnd,
@@ -1473,7 +1475,7 @@
       node: node,
       render: render,
       onSubtitle: onSubtitle,
-      onLogind: onLogind,
+      onLogin: onLogin,
       requestAuthorization: requestAuthorization,
     };
   }
@@ -1496,7 +1498,7 @@
 
       socket.on("authorized", function (code) {
         log("Connection authorized:", code);
-        props.onLogind();
+        props.onLogin();
       });
 
       socket.on("subtitle", function (data) {
@@ -1559,8 +1561,8 @@
       onRequestAuth: function () {
         app.requestAuthorization();
       },
-      onLogind: function () {
-        app.onLogind();
+      onLogin: function () {
+        app.onLogin();
       },
     });
 
@@ -1570,8 +1572,7 @@
     });
 
     api.connect();
-    // People don't expect that they receive subtitles only if they play the movie.
-    app.render({ subtitle: "Start playing a movie to receive subtitles…" });
+    app.render();
 
     document.body.appendChild(app.node);
   }
