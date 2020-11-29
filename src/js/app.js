@@ -783,8 +783,6 @@
         div({ textContent: "History", classes: ["title"] }),
         div({ className: "button-container" }, renderButtons()),
       ]);
-
-      return api;
     }
 
     return (api = {
