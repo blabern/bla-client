@@ -904,7 +904,7 @@
       h2({ textContent: "Please make sure that:" }),
       li({
         textContent:
-          "Chrome Extension on your desktop browser is installed and you are logged in.",
+          "Chrome Extension on your desktop browser is installed and you have the same email entered there.",
       }),
       li({ textContent: "You are logged in here, in the app." }),
       li({
