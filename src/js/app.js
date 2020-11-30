@@ -993,38 +993,12 @@
       getUser().then(onGotUser).catch(onError);
     }
 
-    function authorizeWithRedirect(call) {
-      okta.token.getWithRedirect({
-        scopes: ["openid", "email"],
-      });
-    }
-
-    // We are getting redirected from the okta login service
-    // with query params in the url containing session data.
-    function setTokensFromUrl() {
-      return okta.token.parseFromUrl().then(function (res) {
-        log("Token from URL", res);
-        okta.tokenManager.setTokens(res.tokens);
-      });
-    }
-
-    // Auth provider has redirected to us back and we have the auth data
-    // in the URL now.
-    isUrlAuth &&
-      (function () {
-        setTokensFromUrl()
-          .then(function () {
-            checkUser();
-          })
-          .catch(function (err) {
-            log(err.message);
-          });
-      })();
-
     function onLogin(e) {
       authStateMachine.state = "pending";
       render();
-      authorizeWithRedirect();
+      okta.token.getWithRedirect({
+        scopes: ["openid", "email"],
+      });
     }
 
     function onHelp() {
@@ -1085,6 +1059,20 @@
 
       return node;
     }
+
+    // We are getting redirected from the okta login service
+    // with query params in the url containing session data.
+    isUrlAuth &&
+      okta.token
+        .parseFromUrl()
+        .then(function (res) {
+          log("Token from URL: ", res);
+          okta.tokenManager.setTokens(res.tokens);
+        })
+        .then(checkUser)
+        .catch(function (err) {
+          log("Set tokens from URL error: ", err.message);
+        });
 
     return {
       node: node,
