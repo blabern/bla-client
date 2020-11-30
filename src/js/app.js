@@ -198,6 +198,8 @@
   var ul = $.bind(null, "ul");
   var li = $.bind(null, "li");
   var nav = $.bind(null, "nav");
+  var b = $.bind(null, "b");
+  var br = $.bind(null, "br");
 
   /* App */
 
@@ -952,20 +954,44 @@
         return this[this.state][view];
       },
     };
+    var email;
 
     var okta = new OktaAuth({
-      issuer: "https://dev-9102151.okta.com/oauth2/default",
+      issuer: "https://lingvotv.okta.com/oauth2/default",
       clientId: "0oa1egchtJEA4o9dF5d6",
       redirectUri: location.origin,
     });
 
-    function getUser() {
-      return Promise.all([
-        okta.tokenManager.get("accessToken"),
-        okta.tokenManager.get("idToken"),
-      ]).then(function ([accessToken, idToken]) {
-        return okta.getUser(accessToken, idToken);
-      });
+    function checkUser() {
+      function getUser() {
+        return Promise.all([
+          okta.tokenManager.get("accessToken"),
+          okta.tokenManager.get("idToken"),
+        ]).then(function ([accessToken, idToken]) {
+          return okta.getUser(accessToken, idToken);
+        });
+      }
+
+      function onGotUser(user) {
+        // We already got the same user,
+        // This can happen when user visits login screen
+        // and we are already logged in, but we needed to check.
+        if (user.email === email) {
+          return;
+        }
+        log("Authorized user", user);
+        email = user.email;
+        authStateMachine.state = "authorized";
+        render();
+        props.onLogin(email);
+      }
+
+      function onError(err) {
+        log("Auth error:", err.message);
+        authStateMachine.state = "unauthorized";
+        render();
+      }
+      getUser().then(onGotUser).catch(onError);
     }
 
     function authorizeWithRedirect(call) {
@@ -983,22 +1009,13 @@
       });
     }
 
+    // Auth provider has redirected to us back and we have the auth data
+    // in the URL now.
     isUrlAuth &&
       (function () {
         setTokensFromUrl()
           .then(function () {
-            getUser()
-              .then(function (user) {
-                log("authorized user", user);
-                authStateMachine.state = "authorized";
-                render();
-                props.onLogin(user.sub);
-              })
-              .catch(function (err) {
-                log(err.message);
-                authStateMachine.state = "unauthorized";
-                render();
-              });
+            checkUser();
           })
           .catch(function (err) {
             log(err.message);
@@ -1022,29 +1039,34 @@
     function show() {
       node.classList.remove("hidden");
       if (isUrlAuth) return;
-      getUser()
-        .then(function (user) {
-          log("User", user);
-          authStateMachine.state = "authorized";
-          render();
-        })
-        .catch(function (err) {
-          authStateMachine.state = "unauthorized";
-          render();
-          log(err.message);
-        });
+      checkUser();
     }
 
     function render() {
       help = help || new ConnectHelp();
       $(node, [
-        p({
-          classes: ["welcome", !authStateMachine.get("welcome") && "hidden"],
-          innerHTML: "Welcome to LingvoTV, <br /> you are logged in!",
-        }),
+        div(
+          {
+            classes: ["welcome", !authStateMachine.get("welcome") && "hidden"],
+          },
+          [
+            h2({ textContent: "Welcome to LingvoTV!" }),
+            p([
+              span({
+                textContent: "You are logged in as ",
+              }),
+              b({ textContent: email + "." }),
+              br(),
+              span({
+                textContent:
+                  "Enter this email in Chrome Extension on the main screen!",
+              }),
+            ]),
+          ]
+        ),
         p({
           classes: ["loading", !authStateMachine.get("loading") && "hidden"],
-          innerHTML: "Loading…",
+          textContent: "Loading…",
         }),
         button({
           classes: [
@@ -1101,27 +1123,27 @@
     function render() {
       $(node, [
         (items.login = button({
-          className: "icon-button login-button",
+          classes: ["icon-button", "login-button"],
           textContent: "Connect",
           onclick: onSelect.bind(null, "login"),
         })),
         (items.stream = button({
-          className: "icon-button stream-button",
+          classes: ["icon-button", "stream-button"],
           textContent: "Subtitles",
           onclick: onSelect.bind(null, "stream"),
         })),
         (items.history = button({
-          className: "icon-button history-button",
+          classes: ["icon-button", "history-button"],
           textContent: "History",
           onclick: onSelect.bind(null, "history"),
         })),
         (items.menu = button({
-          className: "icon-button settings-button",
+          classes: ["icon-button", "settings-button"],
           textContent: "Settings",
           onclick: onSelect.bind(null, "menu"),
         })),
         (items.feedback = button({
-          className: "icon-button feedback-button",
+          classes: ["icon-button", "feedback-button"],
           textContent: "Feedback",
           onclick: onSelect.bind(null, "feedback"),
         })),
@@ -1325,8 +1347,6 @@
       shareReminder.onSubtitle(data);
     }
 
-    function onLogin() {}
-
     function onTranslate(words, callback) {
       words = words
         .map(function (word) {
@@ -1473,7 +1493,6 @@
       node: node,
       render: render,
       onSubtitle: onSubtitle,
-      onLogin: onLogin,
       requestAuthorization: requestAuthorization,
     };
   }
@@ -1487,16 +1506,15 @@
       });
 
       socket.on("connect", function () {
-        log("Socket connected.");
+        log("Socket connected");
       });
 
       socket.on("disconnect", function () {
-        log("Socket disconnected.");
+        log("Socket disconnected");
       });
 
       socket.on("authorized", function (code) {
-        log("Connection authorized:", code);
-        props.onLogin();
+        log("Socket connection authorized:", code);
       });
 
       socket.on("subtitle", function (data) {
@@ -1505,7 +1523,7 @@
       });
 
       socket.on("authRequest", function () {
-        log("Auth requested by server.");
+        log("Auth requested by server");
         props.onRequestAuth();
       });
 
@@ -1558,9 +1576,6 @@
       },
       onRequestAuth: function () {
         app.requestAuthorization();
-      },
-      onLogin: function () {
-        app.onLogin();
       },
     });
 

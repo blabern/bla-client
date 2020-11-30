@@ -300,7 +300,7 @@ a:visited {
   bottom: 50px;
 }
 .login .welcome {
-  font-size: 2em;
+  max-width: 80vw;
   flex-grow: 0;
   flex-shrink: 0;
 }
