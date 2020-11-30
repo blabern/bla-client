@@ -207,7 +207,6 @@
     {
       subLang: "auto",
       trLang: "en",
-      auth: undefined,
       shareReminderCounter: 0,
       history: [],
     },
@@ -930,7 +929,7 @@
     var node = div({
       classes: ["screen", "login", "hidden"],
     });
-    var help;
+    var help = new ConnectHelp();
     var loginButtonEl;
     var isUrlAuth = /state=/.test(location.search);
     var authStateMachine = {
@@ -1043,7 +1042,6 @@
     }
 
     function render() {
-      help = help || new ConnectHelp();
       $(node, [
         div(
           {
@@ -1357,8 +1355,7 @@
     }
 
     function requestAuthorization() {
-      if (!state.auth) controller.show(login);
-      else props.onLogin(state.auth);
+      controller.show(login);
     }
 
     function render(data) {
@@ -1382,14 +1379,7 @@
       nav.render();
 
       login = Login({
-        value: state.auth,
-        onChange: function (value) {
-          setState({ auth: value });
-        },
-        onLogin: function (value) {
-          if (!value) return;
-          props.onLogin(value);
-        },
+        onLogin: props.onLogin,
       });
       login.render();
 
