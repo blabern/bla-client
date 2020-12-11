@@ -1104,7 +1104,7 @@
     var lastSubtitleTime = Date.now();
     var dialog;
     var shareOptions = {
-      url: "http://lingvo.tv",
+      url: "https://lingvo.tv",
     };
 
     function close() {
