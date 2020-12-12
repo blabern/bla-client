@@ -986,6 +986,7 @@
         authStateMachine.state = "authorized";
         render();
         props.onLogin(email);
+        ga("set", "userId", email);
       }
 
       function onError(err) {
