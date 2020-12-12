@@ -998,6 +998,7 @@
       render();
       okta.token.getWithRedirect({
         scopes: ["openid", "email"],
+        maxAge: 30 * 24 * 60 * 60,
       });
     }
 
