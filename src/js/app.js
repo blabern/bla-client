@@ -1,6 +1,6 @@
 (function () {
   var conf = {
-    baseUrl: "http://api.lingvo.tv",
+    baseUrl: "https://api.lingvo.tv",
     // baseUrl: 'http://localhost:3000',
     languages: [
       { f: "Detect language", a: "auto" },
@@ -1180,7 +1180,7 @@
     var lastSubtitleTime = Date.now();
     var dialog;
     var shareOptions = {
-      url: "http://lingvo.tv",
+      url: "https://lingvo.tv",
     };
 
     function close() {
