@@ -194,10 +194,13 @@
   var header = $.bind(null, "header");
   var h1 = $.bind(null, "h1");
   var h2 = $.bind(null, "h2");
+  var h3 = $.bind(null, "h3");
   var a = $.bind(null, "a");
   var ul = $.bind(null, "ul");
   var li = $.bind(null, "li");
   var nav = $.bind(null, "nav");
+  var b = $.bind(null, "b");
+  var br = $.bind(null, "br");
 
   /* App */
 
@@ -205,7 +208,6 @@
     {
       subLang: "auto",
       trLang: "en",
-      auth: undefined,
       shareReminderCounter: 0,
       history: [],
     },
@@ -227,7 +229,7 @@
   }
 
   function feedback() {
-    location.href = "mailto:lingvotvapp@gmail.com?subject=Feedback";
+    location.href = "mailto:help@lingvo.tv?subject=Help";
   }
 
   function ScrollRenderController(props) {
@@ -261,11 +263,11 @@
     };
   }
 
-  function Dialog(options) {
+  function Dialog() {
     var node = div({ classes: ["dialog", "hidden"] });
 
-    function render() {
-      $(node, [div({ className: "window" }, [options.content])]);
+    function render(nextProps) {
+      $(node, [div({ className: "window" }, nextProps.children)]);
       return node;
     }
 
@@ -291,7 +293,6 @@
     var node = div({ className: "screen stream hidden" });
     var sectionNodes;
     var sections = [];
-    var reconnect;
     var isEmpty = true;
     var autoScroll = true;
     var stream = [];
@@ -309,16 +310,6 @@
 
     function scrollToEnd() {
       node.scrollTop = node.scrollHeight;
-    }
-
-    function renderReconnect() {
-      return div({ className: "reconnect-container" }, [
-        button({
-          classes: ["control", "reconnect"],
-          textContent: "Reconnect",
-          onclick: props.onReconnect,
-        }),
-      ]);
     }
 
     function renderSection(text) {
@@ -339,7 +330,6 @@
 
     function append(data) {
       if (isEmpty) {
-        reconnect.classList.add("hidden");
         removeNode(sectionNodes.firstChild);
         isEmpty = false;
       }
@@ -360,14 +350,13 @@
       node.classList.add("hidden");
     }
 
-    function render(data) {
-      stream.push(data);
-
+    function render() {
       return $(node, [
         (sectionNodes = div({ className: "sections" }, [
-          renderSection(data.text),
+          // Initial entry
+          // People don't expect that they receive subtitles only if they play the movie.
+          renderSection("Start playing a movie to receive subtitles…"),
         ])),
-        (reconnect = renderReconnect()),
       ]);
     }
 
@@ -738,7 +727,7 @@
       } else {
         content = [
           div({ className: "empty" }, [
-            h1({ textContent: "Nothing found." }),
+            h1({ textContent: "No entries found" }),
             p({ textContent: "Click on subtitles to translate." }),
           ]),
         ];
@@ -796,8 +785,6 @@
         div({ textContent: "History", classes: ["title"] }),
         div({ className: "button-container" }, renderButtons()),
       ]);
-
-      return api;
     }
 
     return (api = {
@@ -907,60 +894,119 @@
     };
   }
 
-  function AuthHelp() {
-    var dialog;
+  function ConnectHelp() {
+    var dialog = new Dialog();
 
-    function onHide() {
-      dialog.hide();
+    function render(nextProps) {
+      var content = ul({ className: "connect-help" }, [
+        h2({ textContent: "Please make sure that:" }),
+        li({ textContent: "You are logged in here, in the web app." }),
+        li({
+          innerHTML:
+            "LingvoTV Chrome Extension on your desktop browser is installed and uses <b>" +
+            nextProps.email +
+            "</b>",
+        }),
+        li({
+          textContent: "Movie is playing in Chrome browser with subtitles",
+        }),
+        div({ classes: ["actions-bar"] }, [
+          button({
+            classes: ["control", "done"],
+            textContent: "Ok",
+            onclick: dialog.hide,
+          }),
+        ]),
+      ]);
+      return dialog.render({ children: [content] });
     }
 
-    var content = div({ className: "auth-help" }, [
-      h2({ textContent: "Please make sure:" }),
-      li({
-        textContent: "Both devices, desktop and phone have internet access.",
-      }),
-      li({
-        textContent: "Chrome Extension on your desktop browser is installed.",
-      }),
-      li({ textContent: "Verification code from extension is correct." }),
-      li({ textContent: "Movie is playing and subtitles are on the screen." }),
-      div({ classes: ["actions-bar"] }, [
-        button({
-          classes: ["control", "done"],
-          textContent: "Ok",
-          onclick: onHide,
-        }),
-      ]),
-    ]);
-
-    dialog = new Dialog({ content: content });
-
-    return dialog;
+    return {
+      render: render,
+      show: dialog.show,
+      hide: dialog.hide,
+    };
   }
 
-  function Auth(props) {
+  function Login(props) {
     var node = div({
-      classes: ["screen", "auth", "hidden", hasTouch ? "" : "has-keyboard"],
+      classes: ["screen", "login", "hidden"],
     });
-    var code;
-    var help;
+    var help = new ConnectHelp();
+    var loginButtonEl;
+    var isUrlAuth = /state=/.test(location.search);
+    var authStateMachine = {
+      state: "pending",
+      pending: {
+        welcome: false,
+        login: false,
+        loading: true,
+      },
+      authorized: {
+        welcome: true,
+        login: false,
+        loading: false,
+      },
+      unauthorized: {
+        welcome: false,
+        login: true,
+        loading: false,
+      },
+      get(view) {
+        return this[this.state][view];
+      },
+    };
+    var email;
 
-    function onKeyPress(e) {
-      setTimeout(() => {
-        if (e.key === "Enter") {
-          return props.onAuthorize(code.value);
+    var okta = new OktaAuth({
+      issuer: "https://lingvotv.okta.com/oauth2/default",
+      clientId: "0oa1egchtJEA4o9dF5d6",
+      redirectUri: location.origin,
+    });
+
+    function checkUser() {
+      function getUser() {
+        return Promise.all([
+          okta.tokenManager.get("accessToken"),
+          okta.tokenManager.get("idToken"),
+        ]).then(function ([accessToken, idToken]) {
+          return okta.getUser(accessToken, idToken);
+        });
+      }
+
+      function onGotUser(user) {
+        // We already got the same user,
+        // This can happen when user visits login screen
+        // and we are already logged in, but we needed to check.
+        if (user.email === email) {
+          return;
         }
-        changed();
+        log("Authorized user", user);
+        email = user.email;
+        authStateMachine.state = "authorized";
+        render();
+        props.onLogin(email);
+      }
+
+      function onError(err) {
+        log("Auth error:", err.message);
+        authStateMachine.state = "unauthorized";
+        render();
+      }
+      getUser().then(onGotUser).catch(onError);
+    }
+
+    function onLogin(e) {
+      authStateMachine.state = "pending";
+      render();
+      okta.token.getWithRedirect({
+        scopes: ["openid", "email"],
+        maxAge: 30 * 24 * 60 * 60,
       });
     }
 
     function onHelp() {
       help.show();
-    }
-
-    function changed() {
-      var value = code.value;
-      props.onChange(value);
     }
 
     function hide() {
@@ -969,41 +1015,71 @@
 
     function show() {
       node.classList.remove("hidden");
-      code.focus();
+      if (isUrlAuth) return;
+      checkUser();
     }
 
-    function clear() {}
-
     function render() {
-      help = new AuthHelp();
       $(node, [
+        div(
+          {
+            classes: ["welcome", !authStateMachine.get("welcome") && "hidden"],
+          },
+          [
+            p([
+              h2({ textContent: "Welcome to LingvoTV Web App" }),
+              h3({
+                innerHTML:
+                  "Enter <b>" +
+                  email +
+                  "</b> in Chrome Extension on the main screen to connect!",
+              }),
+            ]),
+          ]
+        ),
         p({
-          className: "info",
-          innerHTML:
-            "Click on Lingvo Extension <br />in your Browser to get the Code.",
+          classes: ["loading", !authStateMachine.get("loading") && "hidden"],
+          textContent: "Loading…",
         }),
-        (code = input({
-          classes: ["code", "control"],
-          value: props.value || "",
-          onkeypress: onKeyPress,
-        })),
+        button({
+          classes: [
+            "login",
+            "control",
+            !authStateMachine.get("login") && "hidden",
+          ],
+          textContent: "Login",
+          onclick: onLogin,
+        }),
         button({
           classes: ["text-button", "help"],
           textContent: "Help",
           onclick: onHelp,
         }),
-        help.render(),
+        help.render({ email: email }),
       ]);
 
       return node;
     }
+
+    // We are getting redirected from the okta login service
+    // with query params in the url containing session data.
+    isUrlAuth &&
+      okta.token
+        .parseFromUrl()
+        .then(function (res) {
+          log("Token from URL: ", res);
+          okta.tokenManager.setTokens(res.tokens);
+        })
+        .then(checkUser)
+        .catch(function (err) {
+          log("Set tokens from URL error: ", err.message);
+        });
 
     return {
       node: node,
       render: render,
       hide: hide,
       show: show,
-      clear: clear,
     };
   }
 
@@ -1033,28 +1109,28 @@
 
     function render() {
       $(node, [
-        (items.auth = button({
-          className: "icon-button auth-button",
+        (items.login = button({
+          classes: ["icon-button", "login-button"],
           textContent: "Connect",
-          onclick: onSelect.bind(null, "auth"),
+          onclick: onSelect.bind(null, "login"),
         })),
         (items.stream = button({
-          className: "icon-button stream-button",
+          classes: ["icon-button", "stream-button"],
           textContent: "Subtitles",
           onclick: onSelect.bind(null, "stream"),
         })),
         (items.history = button({
-          className: "icon-button history-button",
+          classes: ["icon-button", "history-button"],
           textContent: "History",
           onclick: onSelect.bind(null, "history"),
         })),
         (items.menu = button({
-          className: "icon-button settings-button",
+          classes: ["icon-button", "settings-button"],
           textContent: "Settings",
           onclick: onSelect.bind(null, "menu"),
         })),
         (items.feedback = button({
-          className: "icon-button feedback-button",
+          classes: ["icon-button", "feedback-button"],
           textContent: "Feedback",
           onclick: onSelect.bind(null, "feedback"),
         })),
@@ -1102,9 +1178,9 @@
     var wait = 3 * 60 * 1000;
     var minDelayAfterSubtitle = 3 * 1000;
     var lastSubtitleTime = Date.now();
-    var dialog;
+    var dialog = new Dialog();
     var shareOptions = {
-      url: "http://lingvo.tv",
+      url: "https://lingvo.tv",
     };
 
     function close() {
@@ -1113,7 +1189,9 @@
 
     function renderShare() {
       var content = div({ className: "social-share" }, [
-        h2({ textContent: "Support Lingvo TV by sharing it with friends!" }),
+        h2({
+          textContent: "Share LingvoTV with friends and receive an upgrade!",
+        }),
         div(
           {
             className: "ssk-block",
@@ -1147,8 +1225,7 @@
           }),
         ]),
       ]);
-      dialog = new Dialog({ content: content });
-      $(node, [dialog.render()]);
+      $(node, [dialog.render({ children: [content] })]);
       SocialShareKit.init(shareOptions);
       dialog.show();
     }
@@ -1183,8 +1260,7 @@
           }),
         ]),
       ]);
-      dialog = new Dialog({ content: content });
-      $(node, [dialog.render()]);
+      $(node, [dialog.render({ children: [content] })]);
       dialog.show();
     }
 
@@ -1229,7 +1305,7 @@
     var history;
     var historyHeader;
     var historyFooter;
-    var auth;
+    var login;
     var menu;
     var nav;
     var controller;
@@ -1243,8 +1319,8 @@
             return nav.select("stream");
           case menu:
             return nav.select("menu");
-          case auth:
-            return nav.select("auth");
+          case login:
+            return nav.select("login");
           case history:
             return nav.select("history");
         }
@@ -1254,10 +1330,6 @@
     function onSubtitle(data) {
       stream.append({ text: data.original });
       shareReminder.onSubtitle(data);
-    }
-
-    function onAuthorized() {
-      controller.show(stream);
     }
 
     function onTranslate(words, callback) {
@@ -1270,16 +1342,15 @@
     }
 
     function requestAuthorization() {
-      if (!state.auth) controller.show(auth);
-      else props.onAuthorize(state.auth);
+      controller.show(login);
     }
 
-    function render(data) {
+    function render() {
       nav = MainNav({
         onSelect: function (name) {
           switch (name) {
-            case "auth":
-              return controller.show(auth);
+            case "login":
+              return controller.show(login);
             case "stream":
               return controller.show(stream);
             case "history":
@@ -1294,18 +1365,10 @@
       });
       nav.render();
 
-      auth = Auth({
-        value: state.auth,
-        onChange: function (value) {
-          setState({ auth: value });
-        },
-        onAuthorize: function (value) {
-          if (!value) return;
-          controller.show(stream);
-          props.onAuthorize(value);
-        },
+      login = Login({
+        onLogin: props.onLogin,
       });
-      auth.render();
+      login.render();
 
       stream = Stream({
         onTranslate: function (params, callback) {
@@ -1319,12 +1382,8 @@
         onHideJumper: function () {
           jumper.hide();
         },
-        onReconnect: function () {
-          auth.clear();
-          controller.show(auth);
-        },
       });
-      stream.render({ text: data.subtitle });
+      stream.render();
 
       jumper = Jumper({
         onScrollToEnd: stream.scrollToEnd,
@@ -1394,7 +1453,7 @@
 
       $(node, [
         nav.node,
-        auth.node,
+        login.node,
         stream.node,
         history.node,
         historyHeader.node,
@@ -1411,7 +1470,6 @@
       node: node,
       render: render,
       onSubtitle: onSubtitle,
-      onAuthorized: onAuthorized,
       requestAuthorization: requestAuthorization,
     };
   }
@@ -1425,16 +1483,15 @@
       });
 
       socket.on("connect", function () {
-        log("Socket connected.");
+        log("Socket connected");
       });
 
       socket.on("disconnect", function () {
-        log("Socket disconnected.");
+        log("Socket disconnected");
       });
 
       socket.on("authorized", function (code) {
-        log("Connection authorized:", code);
-        props.onAuthorized();
+        log("Socket connection authorized:", code);
       });
 
       socket.on("subtitle", function (data) {
@@ -1443,7 +1500,7 @@
       });
 
       socket.on("authRequest", function () {
-        log("Auth requested by server.");
+        log("Auth requested by server");
         props.onRequestAuth();
       });
 
@@ -1497,19 +1554,15 @@
       onRequestAuth: function () {
         app.requestAuthorization();
       },
-      onAuthorized: function () {
-        app.onAuthorized();
-      },
     });
 
     app = App({
       onTranslate: api.translate,
-      onAuthorize: api.authorize,
+      onLogin: api.authorize,
     });
 
     api.connect();
-    // People don't expect that they receive subtitles only if they play the movie.
-    app.render({ subtitle: "Play movie to receive subtitles." });
+    app.render();
 
     document.body.appendChild(app.node);
   }
