@@ -194,6 +194,7 @@
   var header = $.bind(null, "header");
   var h1 = $.bind(null, "h1");
   var h2 = $.bind(null, "h2");
+  var h3 = $.bind(null, "h3");
   var a = $.bind(null, "a");
   var ul = $.bind(null, "ul");
   var li = $.bind(null, "li");
@@ -228,7 +229,7 @@
   }
 
   function feedback() {
-    location.href = "mailto:lingvotvapp@gmail.com?subject=Feedback";
+    location.href = "mailto:help@lingvo.tv?subject=Help";
   }
 
   function ScrollRenderController(props) {
@@ -262,11 +263,11 @@
     };
   }
 
-  function Dialog(options) {
+  function Dialog() {
     var node = div({ classes: ["dialog", "hidden"] });
 
-    function render() {
-      $(node, [div({ className: "window" }, [options.content])]);
+    function render(nextProps) {
+      $(node, [div({ className: "window" }, nextProps.children)]);
       return node;
     }
 
@@ -894,35 +895,37 @@
   }
 
   function ConnectHelp() {
-    var dialog;
+    var dialog = new Dialog();
 
-    function onHide() {
-      dialog.hide();
+    function render(nextProps) {
+      var content = ul({ className: "connect-help" }, [
+        h2({ textContent: "Please make sure that:" }),
+        li({ textContent: "You are logged in here, in the web app." }),
+        li({
+          innerHTML:
+            "LingvoTV Chrome Extension on your desktop browser is installed and uses <b>" +
+            nextProps.email +
+            "</b>",
+        }),
+        li({
+          textContent: "Movie is playing in Chrome browser with subtitles",
+        }),
+        div({ classes: ["actions-bar"] }, [
+          button({
+            classes: ["control", "done"],
+            textContent: "Ok",
+            onclick: dialog.hide,
+          }),
+        ]),
+      ]);
+      return dialog.render({ children: [content] });
     }
 
-    var content = ul({ className: "connect-help" }, [
-      h2({ textContent: "Please make sure that:" }),
-      li({
-        textContent:
-          "Chrome Extension on your desktop browser is installed and you have the same email entered there.",
-      }),
-      li({ textContent: "You are logged in here, in the app." }),
-      li({
-        textContent:
-          "Movie is playing and subtitles are showing on the main screen.",
-      }),
-      div({ classes: ["actions-bar"] }, [
-        button({
-          classes: ["control", "done"],
-          textContent: "Ok",
-          onclick: onHide,
-        }),
-      ]),
-    ]);
-
-    dialog = new Dialog({ content: content });
-
-    return dialog;
+    return {
+      render: render,
+      show: dialog.show,
+      hide: dialog.hide,
+    };
   }
 
   function Login(props) {
@@ -1023,16 +1026,13 @@
             classes: ["welcome", !authStateMachine.get("welcome") && "hidden"],
           },
           [
-            h2({ textContent: "Welcome to LingvoTV!" }),
             p([
-              span({
-                textContent: "You are logged in as ",
-              }),
-              b({ textContent: email + "." }),
-              br(),
-              span({
-                textContent:
-                  "Enter this email in Chrome Extension on the main screen!",
+              h2({ textContent: "Welcome to LingvoTV Web App" }),
+              h3({
+                innerHTML:
+                  "Enter <b>" +
+                  email +
+                  "</b> in Chrome Extension on the main screen to connect!",
               }),
             ]),
           ]
@@ -1055,7 +1055,7 @@
           textContent: "Help",
           onclick: onHelp,
         }),
-        help.render(),
+        help.render({ email: email }),
       ]);
 
       return node;
@@ -1178,7 +1178,7 @@
     var wait = 3 * 60 * 1000;
     var minDelayAfterSubtitle = 3 * 1000;
     var lastSubtitleTime = Date.now();
-    var dialog;
+    var dialog = new Dialog();
     var shareOptions = {
       url: "https://lingvo.tv",
     };
@@ -1225,8 +1225,7 @@
           }),
         ]),
       ]);
-      dialog = new Dialog({ content: content });
-      $(node, [dialog.render()]);
+      $(node, [dialog.render({ children: [content] })]);
       SocialShareKit.init(shareOptions);
       dialog.show();
     }
@@ -1261,8 +1260,7 @@
           }),
         ]),
       ]);
-      dialog = new Dialog({ content: content });
-      $(node, [dialog.render()]);
+      $(node, [dialog.render({ children: [content] })]);
       dialog.show();
     }
 
@@ -1347,7 +1345,7 @@
       controller.show(login);
     }
 
-    function render(data) {
+    function render() {
       nav = MainNav({
         onSelect: function (name) {
           switch (name) {

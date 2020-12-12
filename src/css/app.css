@@ -309,6 +309,12 @@ a:visited {
   bottom: 10px;
   left: 10px;
 }
+.login h2 {
+  margin-bottom: 2em;
+}
+.login h3 {
+  font-weight: normal;
+}
 
 /* Connect help */
 .connect-help {
@@ -322,6 +328,7 @@ a:visited {
 }
 .connect-help li {
   list-style-type: decimal;
+  margin-bottom: 1em;
 }
 .connect-help .actions-bar {
   text-align: right;
