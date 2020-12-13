@@ -992,7 +992,7 @@
       }
 
       function onError(err) {
-        log("Auth error:", err.message);
+        error("Auth error:", err.message);
         authStateMachine.state = "unauthorized";
         render();
       }
@@ -1003,7 +1003,7 @@
       authStateMachine.state = "pending";
       render();
       okta.token.getWithRedirect({
-        scopes: ["openid", "email"],
+        scopes: ["openid", "email", "profile"],
         maxAge: 30 * 24 * 60 * 60,
       });
     }
@@ -1075,7 +1075,9 @@
         })
         .then(checkUser)
         .catch(function (err) {
-          log("Set tokens from URL error: ", err.message);
+          error("Set tokens from URL error: ", err.message);
+          authStateMachine.state = "unauthorized";
+          render();
         });
       // User has just registered and we need to log them in.
     } else if (isActivation) {
