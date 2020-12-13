@@ -934,7 +934,9 @@
     });
     var help = new ConnectHelp();
     var loginButtonEl;
-    var isUrlAuth = /state=/.test(location.search);
+    var search = new URLSearchParams(location.search);
+    var isUrlAuth = search.get("state") != null;
+    var isActivation = search.get("type_hint") === "ACTIVATION";
     var authStateMachine = {
       state: "pending",
       pending: {
@@ -1064,7 +1066,7 @@
 
     // We are getting redirected from the okta login service
     // with query params in the url containing session data.
-    isUrlAuth &&
+    if (isUrlAuth) {
       okta.token
         .parseFromUrl()
         .then(function (res) {
@@ -1075,6 +1077,10 @@
         .catch(function (err) {
           log("Set tokens from URL error: ", err.message);
         });
+      // User has just registered and we need to log them in.
+    } else if (isActivation) {
+      onLogin();
+    }
 
     return {
       node: node,
