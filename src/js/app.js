@@ -620,9 +620,9 @@
   }
 
   function History(props) {
-    var node = div({ classes: ["screen history hidden"] });
-    var history = props.history;
-    var lastHistoryLength = history.length;
+    var node = div({ classes: ["screen", "history", "hidden"] });
+    var historyData = props.historyData;
+    var lastHistoryLength = historyData.length;
     var api;
     var selectedMap = {};
     var upgradePrompt = UpgradePrompt();
@@ -650,7 +650,7 @@
     }
 
     function add(params) {
-      var entry = history.filter(function (entry) {
+      var entry = historyData.filter(function (entry) {
         return entry.subtitle === params.subtitle;
       })[0];
 
@@ -658,19 +658,22 @@
         // Add new lookups to the entry.
         entry.words = params.words;
       } else {
-        history.push({
-          time: Date.now(),
+        entry = {
+          createdAt: Date.now(),
           subtitle: params.subtitle,
           words: params.words,
-        });
+        };
+        historyData.push(entry);
       }
 
+      historyData.save(entry);
       render();
       return api;
     }
 
     function deleteSelected() {
-      history = history.filter(function (entry, id) {
+      // TODO will be broken
+      historyData = historyData.filter(function (entry, id) {
         return !selectedMap[id];
       });
       selectedMap = {};
@@ -678,12 +681,13 @@
     }
 
     function show() {
-      if (history.length !== lastHistoryLength) {
-        lastHistoryLength = history.length;
+      if (historyData.length !== lastHistoryLength) {
+        lastHistoryLength = historyData.length;
         render();
       }
       node.classList.remove("hidden");
       props.onShow();
+      historyData.load().then(render);
       return api;
     }
 
@@ -741,11 +745,14 @@
     function render() {
       var content;
 
-      if (history.length) {
-        content = history.reduce(function (rows, entry, i, entries) {
+      if (historyData.length) {
+        content = historyData.reduce(function (rows, entry, i, entries) {
           var prevEntry = entries[i - 1];
-          var currDate = new Date(entry.time);
-          if (!prevEntry || !isSameDay(new Date(prevEntry.time), currDate)) {
+          var currDate = new Date(entry.createdAt);
+          if (
+            !prevEntry ||
+            !isSameDay(new Date(prevEntry.createdAt), currDate)
+          ) {
             rows.push(renderSeparator(currDate));
           }
           rows.push(renderSection(entry, i));
@@ -754,7 +761,7 @@
       } else {
         content = [
           div({ classes: ["empty"] }, [
-            h1({ textContent: "No entries found" }),
+            h2({ textContent: "No entries found" }),
             p({ textContent: "Click on subtitles to translate." }),
           ]),
         ];
@@ -1407,7 +1414,7 @@
     var controller;
     var jumper;
     var shareReminder;
-    var historyEntries = [];
+    var historyData = props.historyData;
 
     controller = RenderController({
       onShow: function (inst) {
@@ -1465,7 +1472,8 @@
     });
 
     history = History({
-      history: historyEntries,
+      historyData: historyData,
+      featuresData: props.featuresData,
       onTranslate: function (params, callback) {
         onTranslate(params.words, callback);
       },
@@ -1480,21 +1488,20 @@
           .setProps({ buttonsEnabled: params.selected.length > 0 })
           .render();
       },
-      featuresData: props.featuresData,
     });
     function onDoneHistoryEdit() {
       history.setProps({ isInEditMode: false }).render();
       historyHeader
         .setProps({
           isEditing: false,
-          canEdit: historyEntries.length > 0,
+          canEdit: historyData.length > 0,
         })
         .render();
       historyFooter.hide();
       nav.show();
     }
     historyHeader = HistoryHeader({
-      canEdit: historyEntries.length > 0,
+      canEdit: historyData.length > 0,
       onEdit: function () {
         history.setProps({ isInEditMode: true }).render();
         historyHeader.setProps({ isEditing: true }).render();
@@ -1506,7 +1513,7 @@
     historyFooter = HistoryFooter({
       onDelete: function () {
         history.deleteSelected();
-        if (!historyEntries.length) onDoneHistoryEdit();
+        if (!historyData.length) onDoneHistoryEdit();
       },
     });
 
@@ -1658,7 +1665,66 @@
         });
     }
 
-    return Object.assign(data, { load: load });
+    data.load = load;
+    return data;
+  }
+
+  function HistoryData() {
+    var data = [];
+    var user = {};
+
+    data.save = function (entry) {
+      var options = {
+        method: "PUT",
+        body: JSON.stringify(entry),
+        headers: new Headers({
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + user.sub,
+        }),
+      };
+
+      return fetch(conf.baseUrl + "/history", options)
+        .then(function (res) {
+          return res.text();
+        })
+        .then(function (savedEntry) {
+          var json = JSON.parse(savedEntry);
+          Object.assign(entry, json);
+          log("Saved history entry:", json);
+        })
+        .catch(function (err) {
+          error("Saving history entry failed:", err.message);
+        });
+    };
+
+    data.load = function () {
+      var options = {
+        method: "GET",
+        headers: new Headers({
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + user.sub,
+        }),
+      };
+
+      return fetch(conf.baseUrl + "/history", options)
+        .then(function (res) {
+          return res.text();
+        })
+        .then(function (entries) {
+          var json = JSON.parse(entries);
+          data.splice.apply(data, [0, data.length].concat(json));
+          return data;
+        })
+        .catch(function (err) {
+          error("Loading history failed:", err.message);
+        });
+    };
+
+    data.setUser = function (nextUser) {
+      user = nextUser;
+    };
+
+    return data;
   }
 
   function init() {
@@ -1674,14 +1740,17 @@
       },
     });
     var featuresData = FeaturesData();
+    var historyData = HistoryData();
 
     app = App({
       onTranslate: api.translate,
       onLogin: function (user) {
         featuresData.load(user).then(app.render);
         api.authorize(user.email);
+        historyData.setUser(user);
       },
       featuresData: featuresData,
+      historyData: historyData,
     });
 
     api.connect();
