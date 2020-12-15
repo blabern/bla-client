@@ -1,7 +1,7 @@
 (function () {
   var conf = {
     baseUrl: "https://api.lingvo.tv",
-    //baseUrl: "http://localhost:3000",
+    baseUrl: "http://localhost:3000",
     languages: [
       { f: "Detect language", a: "auto" },
       { f: "Afrikaans", a: "af" },
@@ -202,6 +202,33 @@
   var b = $.bind(null, "b");
   var br = $.bind(null, "br");
   var script = $.bind(null, "script");
+
+  function request(options) {
+    var url = conf.baseUrl + options.path;
+    var fetchOptions = {
+      method: options.method || "GET",
+      body: JSON.stringify(options.data),
+      headers: new Headers({
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + options.token,
+      }),
+    };
+
+    return fetch(url, fetchOptions)
+      .then(function (res) {
+        return res.text();
+      })
+      .then(JSON.parse)
+      .then(function (res) {
+        // Fetch doesn't reject in case of code 400+,
+        // only when actual network error.
+        if (res.error) {
+          throw new Error(res.error);
+        }
+        log("Request successful", fetchOptions.method, options.path, res);
+        return res;
+      });
+  }
 
   /* App */
 
@@ -1027,32 +1054,20 @@
       }
 
       function updateUser(user) {
-        var options = {
+        request({
           method: "POST",
-          body: JSON.stringify({
+          path: "/user",
+          data: {
             email: user.email,
             familyName: user.familyName,
             givenName: user.givenName,
             preferredUsername: user.preferredUsername,
             locale: user.locale,
             sub: user.sub,
-          }),
-          headers: new Headers({
-            "Content-Type": "application/json",
-            Authorization: "Bearer " + user.sub,
-          }),
-        };
-
-        fetch(conf.baseUrl + "/user", options)
-          .then(function (res) {
-            return res.text();
-          })
-          .then(function (user) {
-            log("Updated user", JSON.parse(user));
-          })
-          .catch(function (err) {
-            error("Updating user failed:", err.message);
-          });
+          },
+        }).catch(function (err) {
+          error("Updating user failed:", err.message);
+        });
       }
 
       function onGotUser(user) {
@@ -1613,7 +1628,6 @@
 
     function translate(text, callback) {
       var lang = state.subLang + "-" + state.trLang;
-      var url = conf.baseUrl + "/translation/" + lang + "/" + encodeURI(text);
 
       ga("send", {
         hitType: "event",
@@ -1622,17 +1636,10 @@
         eventLabel: lang,
       });
 
-      return fetch(url)
-        .then(function (res) {
-          return res.text();
-        })
-        .then(function (text) {
-          try {
-            callback(JSON.parse(text));
-          } catch (err) {
-            error(err);
-          }
-        })
+      request({
+        path: "/translation/" + lang + "/" + encodeURI(text),
+      })
+        .then(callback)
         .catch(error);
     }
 
@@ -1649,19 +1656,9 @@
     };
 
     function read(user) {
-      var options = {
-        headers: new Headers({
-          Authorization: "Bearer " + user.sub,
-        }),
-      };
-
-      return fetch(conf.baseUrl + "/features", options)
+      return request({ path: "/features", token: user.sub })
         .then(function (res) {
-          return res.text();
-        })
-        .then(function (res) {
-          var json = JSON.parse(res);
-          return Object.assign(data, json);
+          return Object.assign(data, res);
         })
         .catch(function (err) {
           error("Fetching features failed:", err.message);
@@ -1680,77 +1677,42 @@
       // Optimistically add
       data.push(entry);
 
-      var options = {
+      return request({
         method: "POST",
-        body: JSON.stringify(entry),
-        headers: new Headers({
-          "Content-Type": "application/json",
-          Authorization: "Bearer " + user.sub,
-        }),
-      };
-
-      return fetch(conf.baseUrl + "/history", options)
-        .then(function (res) {
-          return res.text();
-        })
-        .then(function (res) {
-          var json = JSON.parse(res);
-          log("Created history entry:", json);
-          // TODO recover in case of res.error
-          return json;
-        })
-        .catch(function (err) {
-          error("Creating history entry failed:", err.message);
-        });
+        path: "/history",
+        data: entry,
+        token: user.sub,
+      }).catch(function (err) {
+        // TODO recover in case of res.error
+        error("Creating history entry failed:", err.message);
+      });
     };
 
     data.update = function (entry, update) {
       // Optimistically update
       assign(entry, update);
 
-      var options = {
+      return request({
         method: "PUT",
-        body: JSON.stringify(entry),
-        headers: new Headers({
-          "Content-Type": "application/json",
-          Authorization: "Bearer " + user.sub,
-        }),
-      };
-
-      return fetch(conf.baseUrl + "/history/" + entry._id, options)
-        .then(function (res) {
-          return res.text();
-        })
-        .then(function (res) {
-          var json = JSON.parse(res);
-          log("Updated history entry:", json);
-          // TODO needs to recover if res.error
-          return json;
-        })
-        .catch(function (err) {
-          error("Updating history entry failed:", err.message);
-        });
+        path: "/history/" + entry._id,
+        data: entry,
+        token: user.sub,
+      }).catch(function (err) {
+        // TODO recover in case of res.error
+        error("Updating history entry failed:", err.message);
+      });
     };
 
     data.read = function () {
-      var options = {
-        method: "GET",
-        headers: new Headers({
-          Authorization: "Bearer " + user.sub,
-        }),
-      };
-
-      return fetch(conf.baseUrl + "/history", options)
+      return request({
+        path: "/history",
+        token: user.sub,
+      })
         .then(function (res) {
-          return res.text();
-        })
-        .then(function (res) {
-          var json = JSON.parse(res);
-          data.splice.apply(data, [0, data.length].concat(json));
-          // TODO handle res.error
-          return data;
+          data.splice.apply(data, [0, data.length].concat(res));
         })
         .catch(function (err) {
+          // TODO recover in case of res.error
           error("Loading history failed:", err.message);
         });
     };
@@ -1761,30 +1723,18 @@
         data.splice(data.indexOf(entry), 1);
       });
 
-      var options = {
-        method: "DELETE",
-        headers: new Headers({
-          Authorization: "Bearer " + user.sub,
-        }),
-      };
-
       var entryIds = entries.map(function (entry) {
         return entry._id;
       });
 
-      return fetch(conf.baseUrl + "/history/" + entryIds, options)
-        .then(function (res) {
-          return res.text();
-        })
-        .then(function (res) {
-          var json = JSON.parse(res);
-          log("Delete history entry response:", json);
-          // TODO in case of res.error, we need to recover.
-          return json;
-        })
-        .catch(function (err) {
-          error("Saving history entry failed:", err.message);
-        });
+      return request({
+        method: "DELETE",
+        path: "/history/" + entryIds,
+        token: user.sub,
+      }).catch(function (err) {
+        // TODO recover in case of res.error
+        error("Saving history entry failed:", err.message);
+      });
     };
 
     data.setUser = function (nextUser) {
