@@ -345,10 +345,10 @@
       section.setProps({
         text: text,
         isPrimary: true,
-        onTranslate: function (params, callback) {
-          props.onTranslate(params, function (data) {
-            callback(data);
+        onTranslate: function (params) {
+          return props.onTranslate(params).then(function (data) {
             setTimeout(scrollRenderController.check, 100);
+            return data;
           });
         },
       });
@@ -413,11 +413,14 @@
         }).render();
       }
 
-      props.onTranslate({ words: param.words, subtitle: props.text }, function (
-        translation
-      ) {
-        setProps({ translation: translation, selected: param.words }).render();
-      });
+      props
+        .onTranslate({ words: param.words, subtitle: props.text })
+        .then(function (translation) {
+          setProps({
+            translation: translation,
+            selected: param.words,
+          }).render();
+        });
     }
 
     function setProps(nextProps) {
@@ -1467,10 +1470,10 @@
     });
 
     stream = Stream({
-      onTranslate: function (params, callback) {
-        onTranslate(params.words, callback);
+      onTranslate: function (params) {
         history.add(params);
         historyHeader.setProps({ canEdit: true }).render();
+        return onTranslate(params.words);
       },
       onShowJumper: function () {
         jumper.show();
@@ -1487,8 +1490,8 @@
     history = History({
       historyData: historyData,
       featuresData: props.featuresData,
-      onTranslate: function (params, callback) {
-        onTranslate(params.words, callback);
+      onTranslate: function (params) {
+        return onTranslate(params.words);
       },
       onShow: function () {
         historyData.read().then(function () {
@@ -1551,13 +1554,13 @@
       shareReminder.onSubtitle(data);
     }
 
-    function onTranslate(words, callback) {
+    function onTranslate(words) {
       words = words
         .map(function (word) {
           return word.text;
         })
         .join(" ");
-      props.onTranslate(words, callback);
+      return props.onTranslate(words);
     }
 
     function requestAuthorization() {
@@ -1626,7 +1629,16 @@
       socket.emit("authorize", code);
     }
 
-    function translate(text, callback) {
+    return {
+      connect: connect,
+      authorize: authorize,
+    };
+  }
+
+  function TranslationData() {
+    var user = {};
+
+    function read(text) {
       var lang = state.subLang + "-" + state.trLang;
 
       ga("send", {
@@ -1636,17 +1648,21 @@
         eventLabel: lang,
       });
 
-      request({
+      return request({
         path: "/translation/" + lang + "/" + encodeURI(text),
-      })
-        .then(callback)
-        .catch(error);
+        token: user.sub,
+      }).catch(function (err) {
+        error("Fetching translation failed:", err.message);
+      });
+    }
+
+    function setUser(nextUser) {
+      user = nextUser;
     }
 
     return {
-      connect: connect,
-      translate: translate,
-      authorize: authorize,
+      read: read,
+      setUser: setUser,
     };
   }
 
@@ -1654,8 +1670,9 @@
     var data = {
       history: false,
     };
+    var user = {};
 
-    function read(user) {
+    function read() {
       return request({ path: "/features", token: user.sub })
         .then(function (res) {
           return Object.assign(data, res);
@@ -1665,15 +1682,18 @@
         });
     }
 
-    data.read = read;
-    return data;
+    function setUser(nextUser) {
+      user = nextUser;
+    }
+
+    return assign(data, { read: read, setUser: setUser });
   }
 
   function HistoryData() {
     var data = [];
     var user = {};
 
-    data.create = function (entry) {
+    function create(entry) {
       // Optimistically add
       data.push(entry);
 
@@ -1686,9 +1706,23 @@
         // TODO recover in case of res.error
         error("Creating history entry failed:", err.message);
       });
-    };
+    }
 
-    data.update = function (entry, update) {
+    function read() {
+      return request({
+        path: "/history",
+        token: user.sub,
+      })
+        .then(function (res) {
+          data.splice.apply(data, [0, data.length].concat(res));
+        })
+        .catch(function (err) {
+          // TODO recover in case of res.error
+          error("Loading history failed:", err.message);
+        });
+    }
+
+    function update(entry, update) {
       // Optimistically update
       assign(entry, update);
 
@@ -1701,23 +1735,9 @@
         // TODO recover in case of res.error
         error("Updating history entry failed:", err.message);
       });
-    };
+    }
 
-    data.read = function () {
-      return request({
-        path: "/history",
-        token: user.sub,
-      })
-        .then(function (res) {
-          data.splice.apply(data, [0, data.length].concat(res));
-        })
-        .catch(function (err) {
-          // TODO recover in case of res.error
-          error("Loading history failed:", err.message);
-        });
-    };
-
-    data.delete = function (entries) {
+    function del(entries) {
       // Optimistic removal.
       entries.forEach(function (entry) {
         data.splice(data.indexOf(entry), 1);
@@ -1735,13 +1755,19 @@
         // TODO recover in case of res.error
         error("Saving history entry failed:", err.message);
       });
-    };
+    }
 
-    data.setUser = function (nextUser) {
+    function setUser(nextUser) {
       user = nextUser;
-    };
+    }
 
-    return data;
+    return assign(data, {
+      create: create,
+      read: read,
+      update: update,
+      delete: del,
+      setUser: setUser,
+    });
   }
 
   function init() {
@@ -1758,13 +1784,16 @@
     });
     var featuresData = FeaturesData();
     var historyData = HistoryData();
+    var translationData = TranslationData();
 
     app = App({
-      onTranslate: api.translate,
+      onTranslate: translationData.read,
       onLogin: function (user) {
         api.authorize(user.email);
         historyData.setUser(user);
-        featuresData.read(user).then(app.render);
+        featuresData.setUser(user);
+        translationData.setUser(user);
+        featuresData.read().then(app.render);
       },
       featuresData: featuresData,
       historyData: historyData,
