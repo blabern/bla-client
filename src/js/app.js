@@ -210,7 +210,7 @@
       body: JSON.stringify(options.data),
       headers: new Headers({
         "Content-Type": "application/json",
-        Authorization: "Bearer " + options.token,
+        Authorization: "Bearer " + request.token,
       }),
     };
 
@@ -229,6 +229,9 @@
         return res;
       });
   }
+
+  // Will be set as soon as we have it.
+  request.token = undefined;
 
   /* App */
 
@@ -1043,34 +1046,13 @@
           .then(function (user) {
             return {
               email: user.email,
-              emailVerified: user.email_verified,
               familyName: user.family_name,
               givenName: user.given_name,
-              locale: user.locale,
-              name: user.name,
               preferredUsername: user.preferred_username,
+              locale: user.locale,
               sub: user.sub,
-              updatedAt: user.updated_at,
-              zoneinfo: user.zoneinfo,
             };
           });
-      }
-
-      function updateUser(user) {
-        request({
-          method: "POST",
-          path: "/user",
-          data: {
-            email: user.email,
-            familyName: user.familyName,
-            givenName: user.givenName,
-            preferredUsername: user.preferredUsername,
-            locale: user.locale,
-            sub: user.sub,
-          },
-        }).catch(function (err) {
-          error("Updating user failed:", err.message);
-        });
       }
 
       function onGotUser(user) {
@@ -1085,7 +1067,6 @@
         authStateMachine.state = "authorized";
         render();
         props.onLogin(user);
-        updateUser(user);
         ga("set", "userId", email);
       }
 
@@ -1466,6 +1447,7 @@
     });
 
     login = Login({
+      userData: props.userData,
       onLogin: props.onLogin,
     });
 
@@ -1635,9 +1617,28 @@
     };
   }
 
-  function TranslationData() {
-    var user = {};
+  function UserData() {
+    var data = {};
 
+    function update(nextData) {
+      // TODO Optimistically, rollback on error
+      assign(data, nextData);
+
+      return request({
+        method: "PUT",
+        path: "/user",
+        data: data,
+      }).catch(function (err) {
+        error("Updating user failed:", err.message);
+      });
+    }
+
+    return assign(data, {
+      update: update,
+    });
+  }
+
+  function TranslationData() {
     function read(text) {
       var lang = state.subLang + "-" + state.trLang;
 
@@ -1650,19 +1651,13 @@
 
       return request({
         path: "/translation/" + lang + "/" + encodeURI(text),
-        token: user.sub,
       }).catch(function (err) {
         error("Fetching translation failed:", err.message);
       });
     }
 
-    function setUser(nextUser) {
-      user = nextUser;
-    }
-
     return {
       read: read,
-      setUser: setUser,
     };
   }
 
@@ -1670,10 +1665,9 @@
     var data = {
       history: false,
     };
-    var user = {};
 
     function read() {
-      return request({ path: "/features", token: user.sub })
+      return request({ path: "/features" })
         .then(function (res) {
           return Object.assign(data, res);
         })
@@ -1682,16 +1676,11 @@
         });
     }
 
-    function setUser(nextUser) {
-      user = nextUser;
-    }
-
-    return assign(data, { read: read, setUser: setUser });
+    return assign(data, { read: read });
   }
 
   function HistoryData() {
     var data = [];
-    var user = {};
 
     function create(entry) {
       // Optimistically add
@@ -1701,7 +1690,6 @@
         method: "POST",
         path: "/history",
         data: entry,
-        token: user.sub,
       }).catch(function (err) {
         // TODO recover in case of res.error
         error("Creating history entry failed:", err.message);
@@ -1709,10 +1697,7 @@
     }
 
     function read() {
-      return request({
-        path: "/history",
-        token: user.sub,
-      })
+      return request({ path: "/history" })
         .then(function (res) {
           data.splice.apply(data, [0, data.length].concat(res));
         })
@@ -1730,7 +1715,6 @@
         method: "PUT",
         path: "/history/" + entry._id,
         data: entry,
-        token: user.sub,
       }).catch(function (err) {
         // TODO recover in case of res.error
         error("Updating history entry failed:", err.message);
@@ -1750,15 +1734,10 @@
       return request({
         method: "DELETE",
         path: "/history/" + entryIds,
-        token: user.sub,
       }).catch(function (err) {
         // TODO recover in case of res.error
         error("Saving history entry failed:", err.message);
       });
-    }
-
-    function setUser(nextUser) {
-      user = nextUser;
     }
 
     return assign(data, {
@@ -1766,7 +1745,6 @@
       read: read,
       update: update,
       delete: del,
-      setUser: setUser,
     });
   }
 
@@ -1785,18 +1763,19 @@
     var featuresData = FeaturesData();
     var historyData = HistoryData();
     var translationData = TranslationData();
+    var userData = UserData();
 
     app = App({
       onTranslate: translationData.read,
       onLogin: function (user) {
+        request.token = user.sub;
+        userData.update(user);
         socketio.authorize(user.email);
-        historyData.setUser(user);
-        featuresData.setUser(user);
-        translationData.setUser(user);
         featuresData.read().then(app.render);
       },
       featuresData: featuresData,
       historyData: historyData,
+      userData: userData,
     });
 
     socketio.connect();
