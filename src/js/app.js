@@ -650,7 +650,7 @@
     }
 
     function add(params) {
-      var entry = historyData.filter(function (entry) {
+      var entry = historyData.some(function (entry) {
         return entry.subtitle === params.subtitle;
       })[0];
 
@@ -666,17 +666,17 @@
         historyData.push(entry);
       }
 
-      historyData.save(entry);
+      historyData.create(entry);
       render();
       return api;
     }
 
     function deleteSelected() {
-      // TODO will be broken
-      historyData = historyData.filter(function (entry, id) {
-        return !selectedMap[id];
+      var deleteEntries = historyData.filter(function (entry, index) {
+        return selectedMap[index];
       });
       selectedMap = {};
+      historyData.delete(deleteEntries);
       render();
     }
 
@@ -687,7 +687,6 @@
       }
       node.classList.remove("hidden");
       props.onShow();
-      historyData.load().then(render);
       return api;
     }
 
@@ -800,7 +799,7 @@
     }
 
     function renderButtons() {
-      if (!props.canEdit) return;
+      if (props.historyData.length === 0) return;
 
       return [
         button({
@@ -1478,6 +1477,10 @@
         onTranslate(params.words, callback);
       },
       onShow: function () {
+        historyData.read().then(function () {
+          historyHeader.render();
+          history.render();
+        });
         historyHeader.show();
       },
       onHide: function () {
@@ -1501,7 +1504,7 @@
       nav.show();
     }
     historyHeader = HistoryHeader({
-      canEdit: historyData.length > 0,
+      historyData: historyData,
       onEdit: function () {
         history.setProps({ isInEditMode: true }).render();
         historyHeader.setProps({ isEditing: true }).render();
@@ -1612,7 +1615,15 @@
     function translate(text, callback) {
       var lang = state.subLang + "-" + state.trLang;
       var url = conf.baseUrl + "/translation/" + lang + "/" + encodeURI(text);
-      fetch(url)
+
+      ga("send", {
+        hitType: "event",
+        eventCategory: "translation",
+        eventAction: "translate",
+        eventLabel: lang,
+      });
+
+      return fetch(url)
         .then(function (res) {
           return res.text();
         })
@@ -1624,13 +1635,6 @@
           }
         })
         .catch(error);
-
-      ga("send", {
-        hitType: "event",
-        eventCategory: "translation",
-        eventAction: "translate",
-        eventLabel: lang,
-      });
     }
 
     return {
@@ -1645,7 +1649,7 @@
       history: false,
     };
 
-    function load(user) {
+    function read(user) {
       var options = {
         headers: new Headers({
           Authorization: "Bearer " + user.sub,
@@ -1665,7 +1669,7 @@
         });
     }
 
-    data.load = load;
+    data.read = read;
     return data;
   }
 
@@ -1673,7 +1677,7 @@
     var data = [];
     var user = {};
 
-    data.save = function (entry) {
+    data.create = function (entry) {
       var options = {
         method: "PUT",
         body: JSON.stringify(entry),
@@ -1697,7 +1701,36 @@
         });
     };
 
-    data.load = function () {
+    data.delete = function (entries) {
+      entries.forEach(function (entry) {
+        data.splice(data.indexOf(entry), 1);
+      });
+
+      var options = {
+        method: "DELETE",
+        headers: new Headers({
+          Authorization: "Bearer " + user.sub,
+        }),
+      };
+
+      var entryIds = entries.map(function (entry) {
+        return entry._id;
+      });
+
+      return fetch(conf.baseUrl + "/history/" + entryIds, options)
+        .then(function (res) {
+          return res.text();
+        })
+        .then(function (res) {
+          var json = JSON.parse(res);
+          log("Delete history entry response:", json);
+        })
+        .catch(function (err) {
+          error("Saving history entry failed:", err.message);
+        });
+    };
+
+    data.read = function () {
       var options = {
         method: "GET",
         headers: new Headers({
@@ -1745,9 +1778,9 @@
     app = App({
       onTranslate: api.translate,
       onLogin: function (user) {
-        featuresData.load(user).then(app.render);
         api.authorize(user.email);
         historyData.setUser(user);
+        featuresData.read(user).then(app.render);
       },
       featuresData: featuresData,
       historyData: historyData,
