@@ -1,7 +1,7 @@
 (function () {
   var conf = {
     baseUrl: "https://api.lingvo.tv",
-    // baseUrl: 'http://localhost:3000',
+    //baseUrl: "http://localhost:3000",
     languages: [
       { f: "Detect language", a: "auto" },
       { f: "Afrikaans", a: "af" },
@@ -201,15 +201,16 @@
   var nav = $.bind(null, "nav");
   var b = $.bind(null, "b");
   var br = $.bind(null, "br");
+  var script = $.bind(null, "script");
 
   /* App */
 
+  // TODO move it to mongo
   var state = assign(
     {
       subLang: "auto",
       trLang: "en",
       shareReminderCounter: 0,
-      history: [],
     },
     getState()
   );
@@ -267,7 +268,7 @@
     var node = div({ classes: ["dialog", "hidden"] });
 
     function render(nextProps) {
-      $(node, [div({ className: "window" }, nextProps.children)]);
+      $(node, [div({ classes: ["window"] }, nextProps.children)]);
       return node;
     }
 
@@ -290,7 +291,7 @@
   }
 
   function Stream(props) {
-    var node = div({ className: "screen stream hidden" });
+    var node = div({ classes: ["screen", "stream", "hidden"] });
     var sectionNodes;
     var sections = [];
     var isEmpty = true;
@@ -352,7 +353,7 @@
 
     function render() {
       return $(node, [
-        (sectionNodes = div({ className: "sections" }, [
+        (sectionNodes = div({ classes: ["sections"] }, [
           // Initial entry
           // People don't expect that they receive subtitles only if they play the movie.
           renderSection("Start playing a movie to receive subtitles…"),
@@ -527,7 +528,7 @@
 
   function Jumper(props) {
     var node = button({
-      className: "icon-button jumper-button",
+      classes: ["icon-button", "jumper-button"],
       onclick: props.onScrollToEnd,
     });
 
@@ -548,7 +549,7 @@
 
   function Translation(props) {
     var api;
-    var node = div({ className: "translation" });
+    var node = div({ classes: ["translation"] });
 
     function setProps(nextProps) {
       assign(props, nextProps);
@@ -592,11 +593,39 @@
     });
   }
 
+  function UpgradePrompt() {
+    function render() {
+      return $(
+        div({ classes: ["upgrade-prompt"] }, [
+          div({ classes: ["content"] }, [
+            h2({ textContent: "LingvoTV Premium" }),
+            p({
+              textContent:
+                "Improve your vocabulary by rereading the new words after watching the movie!",
+            }),
+            a({
+              classes: ["control", "upgrade"],
+              textContent: "Upgrade",
+              href: "https://lingvotv.ck.page/products/lingvo-tv-monthly-2020",
+              target: "_blank",
+            }),
+          ]),
+        ])
+      );
+    }
+
+    return {
+      render: render,
+    };
+  }
+
   function History(props) {
-    var node = div({ className: "screen history hidden" });
-    var lastHistoryLength = state.history.length;
+    var node = div({ classes: ["screen history hidden"] });
+    var history = props.history;
+    var lastHistoryLength = history.length;
     var api;
     var selectedMap = {};
+    var upgradePrompt = UpgradePrompt();
 
     function onSelect(id, e) {
       e.preventDefault();
@@ -621,7 +650,7 @@
     }
 
     function add(params) {
-      var entry = state.history.filter(function (entry) {
+      var entry = history.filter(function (entry) {
         return entry.subtitle === params.subtitle;
       })[0];
 
@@ -629,30 +658,28 @@
         // Add new lookups to the entry.
         entry.words = params.words;
       } else {
-        state.history.push({
+        history.push({
           time: Date.now(),
           subtitle: params.subtitle,
           words: params.words,
         });
       }
 
-      setState(state);
       render();
       return api;
     }
 
     function deleteSelected() {
-      state.history = state.history.filter(function (entry, id) {
+      history = history.filter(function (entry, id) {
         return !selectedMap[id];
       });
       selectedMap = {};
       render();
-      setState(state);
     }
 
     function show() {
-      if (state.history.length !== lastHistoryLength) {
-        lastHistoryLength = state.history.length;
+      if (history.length !== lastHistoryLength) {
+        lastHistoryLength = history.length;
         render();
       }
       node.classList.remove("hidden");
@@ -669,7 +696,7 @@
     function renderSeparator(date) {
       var dateStr =
         date.getDate() + "." + (date.getMonth() + 1) + "." + date.getFullYear();
-      return div({ className: "date-separator" }, [
+      return div({ classes: ["date-separator"] }, [
         span({ textContent: dateStr }),
       ]);
     }
@@ -694,7 +721,7 @@
       if (props.isInEditMode) {
         return div(
           {
-            className: "edit-mode-container",
+            classes: ["edit-mode-container"],
             onclick: onSelect.bind(null, id),
           },
           [
@@ -714,8 +741,8 @@
     function render() {
       var content;
 
-      if (state.history.length) {
-        content = state.history.reduce(function (rows, entry, i, entries) {
+      if (history.length) {
+        content = history.reduce(function (rows, entry, i, entries) {
           var prevEntry = entries[i - 1];
           var currDate = new Date(entry.time);
           if (!prevEntry || !isSameDay(new Date(prevEntry.time), currDate)) {
@@ -726,13 +753,16 @@
         }, []);
       } else {
         content = [
-          div({ className: "empty" }, [
+          div({ classes: ["empty"] }, [
             h1({ textContent: "No entries found" }),
             p({ textContent: "Click on subtitles to translate." }),
           ]),
         ];
       }
 
+      if (props.featuresData.history === false) {
+        content.push(upgradePrompt.render());
+      }
       return $(node, content);
     }
 
@@ -781,9 +811,9 @@
 
     function render() {
       return $(node, [
-        div({ className: "placeholder" }),
+        div({ classes: ["placeholder"] }),
         div({ textContent: "History", classes: ["title"] }),
-        div({ className: "button-container" }, renderButtons()),
+        div({ classes: ["button-container"] }, renderButtons()),
       ]);
     }
 
@@ -805,7 +835,7 @@
       return $(node, [
         button({
           textContent: "Delete",
-          className: "text-button",
+          classes: ["text-button"],
           disabled: !props.buttonsEnabled,
           onclick: props.onDelete,
         }),
@@ -827,7 +857,7 @@
   }
 
   function Menu(props) {
-    var node = div({ className: "screen menu hidden" });
+    var node = div({ classes: ["screen menu hidden"] });
 
     function onChangeSubLang(e) {
       props.onChangeSubLang(e.target.value);
@@ -855,24 +885,24 @@
       var id = Math.random();
       $(node, [
         section([
-          div({ className: "column" }, [
+          div({ classes: ["column"] }, [
             label({ textContent: "Subtitles Language", for: "subLang" + id }),
             select(
               {
                 id: "subLang" + id,
-                className: "control",
+                classes: ["control"],
                 value: state.subLang,
                 onchange: onChangeSubLang,
               },
               renderLangOptions()
             ),
           ]),
-          div({ className: "column" }, [
+          div({ classes: ["column"] }, [
             label({ textContent: "Translation Language", for: "trLang" + id }),
             select(
               {
                 id: "trLang" + id,
-                className: "control",
+                classes: ["control"],
                 value: state.trLang,
                 onchange: onChangeTrLang,
               },
@@ -898,7 +928,7 @@
     var dialog = new Dialog();
 
     function render(nextProps) {
-      var content = ul({ className: "connect-help" }, [
+      var content = ul({ classes: ["connect-help"] }, [
         h2({ textContent: "Please make sure that:" }),
         li({ textContent: "You are logged in here, in the web app." }),
         li({
@@ -971,9 +1001,53 @@
         return Promise.all([
           okta.tokenManager.get("accessToken"),
           okta.tokenManager.get("idToken"),
-        ]).then(function ([accessToken, idToken]) {
-          return okta.getUser(accessToken, idToken);
-        });
+        ])
+          .then(function ([accessToken, idToken]) {
+            return okta.getUser(accessToken, idToken);
+          })
+          .then(function (user) {
+            return {
+              email: user.email,
+              emailVerified: user.email_verified,
+              familyName: user.family_name,
+              givenName: user.given_name,
+              locale: user.locale,
+              name: user.name,
+              preferredUsername: user.preferred_username,
+              sub: user.sub,
+              updatedAt: user.updated_at,
+              zoneinfo: user.zoneinfo,
+            };
+          });
+      }
+
+      function updateUser(user) {
+        var options = {
+          method: "POST",
+          body: JSON.stringify({
+            email: user.email,
+            familyName: user.familyName,
+            givenName: user.givenName,
+            preferredUsername: user.preferredUsername,
+            locale: user.locale,
+            sub: user.sub,
+          }),
+          headers: new Headers({
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + user.sub,
+          }),
+        };
+
+        fetch(conf.baseUrl + "/user", options)
+          .then(function (res) {
+            return res.text();
+          })
+          .then(function (user) {
+            log("Updated user", JSON.parse(user));
+          })
+          .catch(function (err) {
+            error("Updating user failed:", err.message);
+          });
       }
 
       function onGotUser(user) {
@@ -987,12 +1061,13 @@
         email = user.email;
         authStateMachine.state = "authorized";
         render();
-        props.onLogin(email);
+        props.onLogin(user);
+        updateUser(user);
         ga("set", "userId", email);
       }
 
       function onError(err) {
-        error("Auth error:", err.message);
+        log("User session not found:", err.message);
         authStateMachine.state = "unauthorized";
         render();
       }
@@ -1099,47 +1174,60 @@
     var selected;
 
     function onSelect(name) {
-      if (selected === items[name]) return;
+      if (selected === name) return;
       if (props.onSelect(name) === false) return;
       select(name);
     }
 
     function select(name) {
-      unselect();
-      selected = items[name];
-      selected.classList.add("selected");
-    }
-
-    function unselect() {
-      if (!selected) return;
-      selected.classList.remove("selected");
-      selected = null;
+      selected = name;
+      render();
     }
 
     function render() {
       $(node, [
         (items.login = button({
-          classes: ["icon-button", "login-button"],
+          classes: [
+            "icon-button",
+            "login-button",
+            selected === "login" && "selected",
+          ],
           textContent: "Connect",
           onclick: onSelect.bind(null, "login"),
         })),
         (items.stream = button({
-          classes: ["icon-button", "stream-button"],
+          classes: [
+            "icon-button",
+            "stream-button",
+            selected === "stream" && "selected",
+          ],
           textContent: "Subtitles",
           onclick: onSelect.bind(null, "stream"),
         })),
         (items.history = button({
-          classes: ["icon-button", "history-button"],
+          classes: [
+            "icon-button",
+            "history-button",
+            selected === "history" && "selected",
+          ],
           textContent: "History",
           onclick: onSelect.bind(null, "history"),
         })),
         (items.menu = button({
-          classes: ["icon-button", "settings-button"],
+          classes: [
+            "icon-button",
+            "settings-button",
+            selected === "menu" && "selected",
+          ],
           textContent: "Settings",
           onclick: onSelect.bind(null, "menu"),
         })),
         (items.feedback = button({
-          classes: ["icon-button", "feedback-button"],
+          classes: [
+            "icon-button",
+            "feedback-button",
+            selected === "feedback" && "selected",
+          ],
           textContent: "Feedback",
           onclick: onSelect.bind(null, "feedback"),
         })),
@@ -1151,7 +1239,6 @@
       node: node,
       render: render,
       select: select,
-      unselect: unselect,
       show: nav.show,
       hide: nav.hide,
     };
@@ -1182,7 +1269,7 @@
   }
 
   function ShareReminder() {
-    var node = div({ className: "share-reminder" });
+    var node = div({ classes: ["share-reminder"] });
     var maxReminds = 3;
     var wait = 3 * 60 * 1000;
     var minDelayAfterSubtitle = 3 * 1000;
@@ -1197,13 +1284,13 @@
     }
 
     function renderShare() {
-      var content = div({ className: "social-share" }, [
+      var content = div({ classes: ["social-share"] }, [
         h2({
           textContent: "Share LingvoTV with friends and receive an upgrade!",
         }),
         div(
           {
-            className: "ssk-block",
+            classes: ["ssk-block"],
             dataset: {
               text: "Learn languages while watching movies on Netflix and co.",
             },
@@ -1211,17 +1298,17 @@
           [
             a({
               href: "",
-              className: "ssk ssk-text ssk-facebook",
+              classes: ["ssk ssk-text ssk-facebook"],
               textContent: "Share on Facebook",
             }),
             a({
               href: "",
-              className: "ssk ssk-text ssk-twitter",
+              classes: ["ssk ssk-text ssk-twitter"],
               textContent: "Share on Twitter",
             }),
             a({
               href: "",
-              className: "ssk ssk-text ssk-vk",
+              classes: ["ssk ssk-text ssk-vk"],
               textContent: "Share on VK",
             }),
           ]
@@ -1254,7 +1341,7 @@
     }
 
     function renderQuestion() {
-      var content = div({ className: "like-question" }, [
+      var content = div({ classes: ["like-question"] }, [
         h2({ textContent: "Do you like Lingvo TV?" }),
         div({ classes: ["actions-bar"] }, [
           button({
@@ -1309,7 +1396,7 @@
   }
 
   function App(props) {
-    var node = div({ className: "app" });
+    var node = div({ classes: ["app"] });
     var stream;
     var history;
     var historyHeader;
@@ -1320,6 +1407,7 @@
     var controller;
     var jumper;
     var shareReminder;
+    var historyEntries = [];
 
     controller = RenderController({
       onShow: function (inst) {
@@ -1335,6 +1423,104 @@
         }
       },
     });
+
+    nav = MainNav({
+      onSelect: function (name) {
+        switch (name) {
+          case "login":
+            return controller.show(login);
+          case "stream":
+            return controller.show(stream);
+          case "history":
+            return controller.show(history);
+          case "menu":
+            return controller.show(menu);
+          case "feedback":
+            feedback();
+            return false;
+        }
+      },
+    });
+
+    login = Login({
+      onLogin: props.onLogin,
+    });
+
+    stream = Stream({
+      onTranslate: function (params, callback) {
+        onTranslate(params.words, callback);
+        history.add(params);
+        historyHeader.setProps({ canEdit: true }).render();
+      },
+      onShowJumper: function () {
+        jumper.show();
+      },
+      onHideJumper: function () {
+        jumper.hide();
+      },
+    });
+
+    jumper = Jumper({
+      onScrollToEnd: stream.scrollToEnd,
+    });
+
+    history = History({
+      history: historyEntries,
+      onTranslate: function (params, callback) {
+        onTranslate(params.words, callback);
+      },
+      onShow: function () {
+        historyHeader.show();
+      },
+      onHide: function () {
+        historyHeader.hide();
+      },
+      onSelect: function (params) {
+        historyFooter
+          .setProps({ buttonsEnabled: params.selected.length > 0 })
+          .render();
+      },
+      featuresData: props.featuresData,
+    });
+    function onDoneHistoryEdit() {
+      history.setProps({ isInEditMode: false }).render();
+      historyHeader
+        .setProps({
+          isEditing: false,
+          canEdit: historyEntries.length > 0,
+        })
+        .render();
+      historyFooter.hide();
+      nav.show();
+    }
+    historyHeader = HistoryHeader({
+      canEdit: historyEntries.length > 0,
+      onEdit: function () {
+        history.setProps({ isInEditMode: true }).render();
+        historyHeader.setProps({ isEditing: true }).render();
+        historyFooter.show();
+        nav.hide();
+      },
+      onDone: onDoneHistoryEdit,
+    });
+    historyFooter = HistoryFooter({
+      onDelete: function () {
+        history.deleteSelected();
+        if (!historyEntries.length) onDoneHistoryEdit();
+      },
+    });
+
+    menu = Menu({
+      languages: conf.languages,
+      onChangeSubLang: function (value) {
+        setState({ subLang: value });
+      },
+      onChangeTrLang: function (value) {
+        setState({ trLang: value });
+      },
+    });
+
+    shareReminder = new ShareReminder();
 
     function onSubtitle(data) {
       stream.append({ text: data.original });
@@ -1355,120 +1541,15 @@
     }
 
     function render() {
-      nav = MainNav({
-        onSelect: function (name) {
-          switch (name) {
-            case "login":
-              return controller.show(login);
-            case "stream":
-              return controller.show(stream);
-            case "history":
-              return controller.show(history);
-            case "menu":
-              return controller.show(menu);
-            case "feedback":
-              feedback();
-              return false;
-          }
-        },
-      });
-      nav.render();
-
-      login = Login({
-        onLogin: props.onLogin,
-      });
-      login.render();
-
-      stream = Stream({
-        onTranslate: function (params, callback) {
-          onTranslate(params.words, callback);
-          history.add(params);
-          historyHeader.setProps({ canEdit: true }).render();
-        },
-        onShowJumper: function () {
-          jumper.show();
-        },
-        onHideJumper: function () {
-          jumper.hide();
-        },
-      });
-      stream.render();
-
-      jumper = Jumper({
-        onScrollToEnd: stream.scrollToEnd,
-      });
-
-      history = History({
-        onTranslate: function (params, callback) {
-          onTranslate(params.words, callback);
-        },
-        onShow: function () {
-          historyHeader.show();
-        },
-        onHide: function () {
-          historyHeader.hide();
-        },
-        onSelect: function (params) {
-          historyFooter
-            .setProps({ buttonsEnabled: params.selected.length > 0 })
-            .render();
-        },
-      });
-      history.render();
-
-      historyHeader = HistoryHeader({
-        canEdit: state.history.length > 0,
-        onEdit: function () {
-          history.setProps({ isInEditMode: true }).render();
-          historyHeader.setProps({ isEditing: true }).render();
-          historyFooter.show();
-          nav.hide();
-        },
-        onDone: onDoneHistoryEdit,
-      });
-      historyHeader.render();
-
-      historyFooter = HistoryFooter({
-        onDelete: function () {
-          history.deleteSelected();
-          if (!state.history.length) onDoneHistoryEdit();
-        },
-      });
-      historyFooter.render();
-      function onDoneHistoryEdit() {
-        history.setProps({ isInEditMode: false }).render();
-        historyHeader
-          .setProps({
-            isEditing: false,
-            canEdit: state.history.length > 0,
-          })
-          .render();
-        historyFooter.hide();
-        nav.show();
-      }
-
-      menu = Menu({
-        languages: conf.languages,
-        onChangeSubLang: function (value) {
-          setState({ subLang: value });
-        },
-        onChangeTrLang: function (value) {
-          setState({ trLang: value });
-        },
-      });
-      menu.render();
-
-      shareReminder = new ShareReminder();
-
       $(node, [
-        nav.node,
-        login.node,
-        stream.node,
-        history.node,
-        historyHeader.node,
-        historyFooter.node,
+        nav.render(),
+        login.render(),
+        stream.render(),
+        history.render(),
+        historyHeader.render(),
+        historyFooter.render(),
         jumper.node,
-        menu.node,
+        menu.render(),
         shareReminder.node,
       ]);
 
@@ -1492,24 +1573,24 @@
       });
 
       socket.on("connect", function () {
-        log("Socket connected");
+        log("Socketio connected");
       });
 
       socket.on("disconnect", function () {
-        log("Socket disconnected");
+        log("Socketio disconnected");
       });
 
       socket.on("authorized", function (code) {
-        log("Socket connection authorized:", code);
+        log("Socketio connection authorized:", code);
       });
 
       socket.on("subtitle", function (data) {
-        log("Received subtitle:", data);
+        log("Socketio received subtitle:", data);
         props.onSubtitle(data);
       });
 
       socket.on("authRequest", function () {
-        log("Auth requested by server");
+        log("Socketio auth requested by server");
         props.onRequestAuth();
       });
 
@@ -1552,6 +1633,34 @@
     };
   }
 
+  function FeaturesData() {
+    var data = {
+      history: false,
+    };
+
+    function load(user) {
+      var options = {
+        headers: new Headers({
+          Authorization: "Bearer " + user.sub,
+        }),
+      };
+
+      return fetch(conf.baseUrl + "/features", options)
+        .then(function (res) {
+          return res.text();
+        })
+        .then(function (res) {
+          var json = JSON.parse(res);
+          return Object.assign(data, json);
+        })
+        .catch(function (err) {
+          error("Fetching features failed:", err.message);
+        });
+    }
+
+    return Object.assign(data, { load: load });
+  }
+
   function init() {
     MBP.enableActive();
     FastClick.attach(document.body);
@@ -1564,10 +1673,15 @@
         app.requestAuthorization();
       },
     });
+    var featuresData = FeaturesData();
 
     app = App({
       onTranslate: api.translate,
-      onLogin: api.authorize,
+      onLogin: function (user) {
+        featuresData.load(user).then(app.render);
+        api.authorize(user.email);
+      },
+      featuresData: featuresData,
     });
 
     api.connect();
