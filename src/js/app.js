@@ -1,7 +1,7 @@
 (function () {
   var conf = {
     baseUrl: "https://api.lingvo.tv",
-    baseUrl: "http://localhost:3000",
+    // baseUrl: "http://localhost:3000",
     languages: [
       { f: "Detect language", a: "auto" },
       { f: "Afrikaans", a: "af" },
@@ -1591,42 +1591,42 @@
     };
   }
 
-  function Api(props) {
-    var socket;
+  function Socketio(props) {
+    var connection;
 
     function connect() {
-      socket = io.connect(conf.baseUrl, {
+      connection = io.connect(conf.baseUrl, {
         transports: ["polling"],
       });
 
-      socket.on("connect", function () {
+      connection.on("connect", function () {
         log("Socketio connected");
       });
 
-      socket.on("disconnect", function () {
+      connection.on("disconnect", function () {
         log("Socketio disconnected");
       });
 
-      socket.on("authorized", function (code) {
+      connection.on("authorized", function (code) {
         log("Socketio connection authorized:", code);
       });
 
-      socket.on("subtitle", function (data) {
+      connection.on("subtitle", function (data) {
         log("Socketio received subtitle:", data);
         props.onSubtitle(data);
       });
 
-      socket.on("authRequest", function () {
+      connection.on("authRequest", function () {
         log("Socketio auth requested by server");
         props.onRequestAuth();
       });
 
-      return socket;
+      return connection;
     }
 
     function authorize(code) {
       log("Sending authorization code:", code);
-      socket.emit("authorize", code);
+      connection.emit("authorize", code);
     }
 
     return {
@@ -1774,7 +1774,7 @@
     MBP.enableActive();
     FastClick.attach(document.body);
     var app;
-    var api = Api({
+    var socketio = Socketio({
       onSubtitle: function (data) {
         app.onSubtitle(data);
       },
@@ -1789,7 +1789,7 @@
     app = App({
       onTranslate: translationData.read,
       onLogin: function (user) {
-        api.authorize(user.email);
+        socketio.authorize(user.email);
         historyData.setUser(user);
         featuresData.setUser(user);
         translationData.setUser(user);
@@ -1799,7 +1799,7 @@
       historyData: historyData,
     });
 
-    api.connect();
+    socketio.connect();
     app.render();
 
     document.body.appendChild(app.node);
