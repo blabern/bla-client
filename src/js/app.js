@@ -650,23 +650,22 @@
     }
 
     function add(params) {
-      var entry = historyData.some(function (entry) {
+      var entry = historyData.find(function (entry) {
         return entry.subtitle === params.subtitle;
-      })[0];
+      });
 
       if (entry) {
         // Add new lookups to the entry.
-        entry.words = params.words;
+        historyData.update(entry, { words: params.words });
       } else {
         entry = {
           createdAt: Date.now(),
           subtitle: params.subtitle,
           words: params.words,
         };
-        historyData.push(entry);
+        historyData.create(entry);
       }
 
-      historyData.create(entry);
       render();
       return api;
     }
@@ -1678,8 +1677,11 @@
     var user = {};
 
     data.create = function (entry) {
+      // Optimistically add
+      data.push(entry);
+
       var options = {
-        method: "PUT",
+        method: "POST",
         body: JSON.stringify(entry),
         headers: new Headers({
           "Content-Type": "application/json",
@@ -1691,17 +1693,70 @@
         .then(function (res) {
           return res.text();
         })
-        .then(function (savedEntry) {
-          var json = JSON.parse(savedEntry);
-          Object.assign(entry, json);
-          log("Saved history entry:", json);
+        .then(function (res) {
+          var json = JSON.parse(res);
+          log("Created history entry:", json);
+          // TODO recover in case of res.error
+          return json;
         })
         .catch(function (err) {
-          error("Saving history entry failed:", err.message);
+          error("Creating history entry failed:", err.message);
+        });
+    };
+
+    data.update = function (entry, update) {
+      // Optimistically update
+      assign(entry, update);
+
+      var options = {
+        method: "PUT",
+        body: JSON.stringify(entry),
+        headers: new Headers({
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + user.sub,
+        }),
+      };
+
+      return fetch(conf.baseUrl + "/history/" + entry._id, options)
+        .then(function (res) {
+          return res.text();
+        })
+        .then(function (res) {
+          var json = JSON.parse(res);
+          log("Updated history entry:", json);
+          // TODO needs to recover if res.error
+          return json;
+        })
+        .catch(function (err) {
+          error("Updating history entry failed:", err.message);
+        });
+    };
+
+    data.read = function () {
+      var options = {
+        method: "GET",
+        headers: new Headers({
+          Authorization: "Bearer " + user.sub,
+        }),
+      };
+
+      return fetch(conf.baseUrl + "/history", options)
+        .then(function (res) {
+          return res.text();
+        })
+        .then(function (res) {
+          var json = JSON.parse(res);
+          data.splice.apply(data, [0, data.length].concat(json));
+          // TODO handle res.error
+          return data;
+        })
+        .catch(function (err) {
+          error("Loading history failed:", err.message);
         });
     };
 
     data.delete = function (entries) {
+      // Optimistic removal.
       entries.forEach(function (entry) {
         data.splice(data.indexOf(entry), 1);
       });
@@ -1724,32 +1779,11 @@
         .then(function (res) {
           var json = JSON.parse(res);
           log("Delete history entry response:", json);
+          // TODO in case of res.error, we need to recover.
+          return json;
         })
         .catch(function (err) {
           error("Saving history entry failed:", err.message);
-        });
-    };
-
-    data.read = function () {
-      var options = {
-        method: "GET",
-        headers: new Headers({
-          "Content-Type": "application/json",
-          Authorization: "Bearer " + user.sub,
-        }),
-      };
-
-      return fetch(conf.baseUrl + "/history", options)
-        .then(function (res) {
-          return res.text();
-        })
-        .then(function (entries) {
-          var json = JSON.parse(entries);
-          data.splice.apply(data, [0, data.length].concat(json));
-          return data;
-        })
-        .catch(function (err) {
-          error("Loading history failed:", err.message);
         });
     };
 
