@@ -205,13 +205,14 @@
 
   function request(options) {
     var url = conf.baseUrl + options.path;
+    var headers = {};
+    if (options.data) headers["Content-Type"] = "application/json";
+    if (request.token) headers["Authorization"] = "Bearer " + request.token;
+    if (request.userId) headers["X-User-Id"] = request.userId;
     var fetchOptions = {
       method: options.method || "GET",
       body: JSON.stringify(options.data),
-      headers: new Headers({
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + request.token,
-      }),
+      headers: new Headers(headers),
     };
 
     return fetch(url, fetchOptions)
@@ -232,6 +233,7 @@
 
   // Will be set as soon as we have it.
   request.token = undefined;
+  request.userId = undefined;
 
   /* App */
 
@@ -1767,11 +1769,13 @@
 
     app = App({
       onTranslate: translationData.read,
-      onLogin: function (user) {
-        request.token = user.sub;
-        userData.update(user);
-        socketio.authorize(user.email);
-        featuresData.read().then(app.render);
+      onLogin: function (oktaUser) {
+        request.token = oktaUser.sub;
+        socketio.authorize(oktaUser.email);
+        userData.update(oktaUser).then(function (user) {
+          request.userId = user._id;
+          featuresData.read().then(app.render);
+        });
       },
       featuresData: featuresData,
       historyData: historyData,
