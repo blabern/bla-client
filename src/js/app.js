@@ -1665,7 +1665,7 @@
 
   function FeaturesData() {
     var data = {
-      history: false,
+      history: true,
     };
 
     function read() {
