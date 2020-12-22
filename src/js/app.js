@@ -1,7 +1,7 @@
 (function () {
-  var conf = {
-    baseUrl: "https://api.lingvo.tv",
-    // baseUrl: "http://localhost:3000",
+  var isLocalEnv = location.hostname === "localhost";
+  var config = {
+    baseUrl: isLocalEnv ? "http://localhost:3000" : "https://api.lingvo.tv",
     languages: [
       { f: "Detect language", a: "auto" },
       { f: "Afrikaans", a: "af" },
@@ -204,7 +204,7 @@
   var script = $.bind(null, "script");
 
   function request(options) {
-    var url = conf.baseUrl + options.path;
+    var url = config.baseUrl + options.path;
     var headers = {};
     if (options.data) headers["Content-Type"] = "application/json";
     if (request.token) headers["Authorization"] = "Bearer " + request.token;
@@ -1522,7 +1522,7 @@
     });
 
     menu = Menu({
-      languages: conf.languages,
+      languages: config.languages,
       onChangeSubLang: function (value) {
         setState({ subLang: value });
       },
@@ -1579,7 +1579,7 @@
     var connection;
 
     function connect() {
-      connection = io.connect(conf.baseUrl, {
+      connection = io.connect(config.baseUrl, {
         transports: ["polling"],
       });
 
