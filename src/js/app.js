@@ -1,7 +1,8 @@
 (function () {
   var isLocalEnv = location.hostname === "localhost";
   var config = {
-    baseUrl: isLocalEnv ? "http://localhost:3000" : "https://api.lingvo.tv",
+    baseApiUrl: isLocalEnv ? "http://localhost:3000" : "https://api.lingvo.tv",
+    baseUrl: isLocalEnv ? "http://localhost:8081" : "https://lingvo.tv",
     languages: [
       { f: "Detect language", a: "auto" },
       { f: "Afrikaans", a: "af" },
@@ -204,7 +205,13 @@
   var script = $.bind(null, "script");
 
   function request(options) {
-    var url = config.baseUrl + options.path;
+    // TODO need to figure out what to do with cases
+    // where there will be error from the api
+    //if (options.needsAuth && !request.token) {
+    //  return Promise.reject(new Error("Unauthorized"));
+    //}
+
+    var url = config.baseApiUrl + options.path;
     var headers = {};
     if (options.data) headers["Content-Type"] = "application/json";
     if (request.token) headers["Authorization"] = "Bearer " + request.token;
@@ -217,9 +224,8 @@
 
     return fetch(url, fetchOptions)
       .then(function (res) {
-        return res.text();
+        return res.json();
       })
-      .then(JSON.parse)
       .then(function (res) {
         // Fetch doesn't reject in case of code 400+,
         // only when actual network error.
@@ -641,7 +647,7 @@
             a({
               classes: ["control", "upgrade"],
               textContent: "Upgrade",
-              href: "https://lingvotv.ck.page/products/lingvo-tv-monthly-2020",
+              href: baseUrl + "/#pricing",
               target: "_blank",
             }),
           ]),
@@ -694,6 +700,7 @@
         historyData.update(entry, { words: params.words });
       } else {
         entry = {
+          _id: "demo",
           createdAt: Date.now(),
           subtitle: params.subtitle,
           words: params.words,
@@ -1579,7 +1586,7 @@
     var connection;
 
     function connect() {
-      connection = io.connect(config.baseUrl, {
+      connection = io.connect(config.baseApiUrl, {
         transports: ["polling"],
       });
 
@@ -1630,6 +1637,7 @@
         method: "PUT",
         path: "/user",
         data: data,
+        needsAuth: true,
       }).catch(function (err) {
         error("Updating user failed:", err.message);
       });
@@ -1653,6 +1661,7 @@
 
       return request({
         path: "/translation/" + lang + "/" + encodeURI(text),
+        needsAuth: true,
       }).catch(function (err) {
         error("Fetching translation failed:", err.message);
       });
@@ -1669,7 +1678,7 @@
     };
 
     function read() {
-      return request({ path: "/features" })
+      return request({ path: "/features", needsAuth: true })
         .then(function (res) {
           return Object.assign(data, res);
         })
@@ -1692,6 +1701,7 @@
         method: "POST",
         path: "/history",
         data: entry,
+        needsAuth: true,
       }).catch(function (err) {
         // TODO recover in case of res.error
         error("Creating history entry failed:", err.message);
@@ -1699,7 +1709,7 @@
     }
 
     function read() {
-      return request({ path: "/history" })
+      return request({ path: "/history", needsAuth: true })
         .then(function (res) {
           data.splice.apply(data, [0, data.length].concat(res));
         })
@@ -1717,6 +1727,7 @@
         method: "PUT",
         path: "/history/" + entry._id,
         data: entry,
+        needsAuth: true,
       }).catch(function (err) {
         // TODO recover in case of res.error
         error("Updating history entry failed:", err.message);
@@ -1736,6 +1747,7 @@
       return request({
         method: "DELETE",
         path: "/history/" + entryIds,
+        needsAuth: true,
       }).catch(function (err) {
         // TODO recover in case of res.error
         error("Saving history entry failed:", err.message);
