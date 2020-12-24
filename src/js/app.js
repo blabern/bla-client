@@ -647,8 +647,7 @@
             a({
               classes: ["control", "upgrade"],
               textContent: "Upgrade",
-              href: baseUrl + "/#pricing",
-              target: "_blank",
+              href: config.baseUrl + "/#pricing",
             }),
           ]),
         ])
@@ -700,7 +699,6 @@
         historyData.update(entry, { words: params.words });
       } else {
         entry = {
-          _id: "demo",
           createdAt: Date.now(),
           subtitle: params.subtitle,
           words: params.words,
@@ -1740,9 +1738,14 @@
         data.splice(data.indexOf(entry), 1);
       });
 
-      var entryIds = entries.map(function (entry) {
-        return entry._id;
-      });
+      var entryIds = entries
+        .map(function (entry) {
+          return entry._id;
+        })
+        .filter(Boolean);
+
+      // E.g. when only demo item was in the list and it has no _id
+      if (!entryIds.length) return;
 
       return request({
         method: "DELETE",
