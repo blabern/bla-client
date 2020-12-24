@@ -1,6 +1,6 @@
 html,
 body {
-  background: #1c1c1c;
+  background: #000;
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
 }
 input,
@@ -79,6 +79,9 @@ a:visited {
   top: 0;
   left: 0;
   right: 0;
+  max-width: 1000px;
+  min-width: 300px;
+  background: #1c1c1c;
 }
 
 .screen {
