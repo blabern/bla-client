@@ -1,7 +1,8 @@
 (function () {
-  var conf = {
-    baseUrl: "https://api.lingvo.tv",
-    // baseUrl: 'http://localhost:3000',
+  var isLocalEnv = location.hostname === "localhost";
+  var config = {
+    baseApiUrl: isLocalEnv ? "http://localhost:3000" : "https://api.lingvo.tv",
+    baseUrl: isLocalEnv ? "http://localhost:8081" : "https://lingvo.tv",
     languages: [
       { f: "Detect language", a: "auto" },
       { f: "Afrikaans", a: "af" },
@@ -201,15 +202,53 @@
   var nav = $.bind(null, "nav");
   var b = $.bind(null, "b");
   var br = $.bind(null, "br");
+  var script = $.bind(null, "script");
+
+  function request(options) {
+    // TODO need to figure out what to do with cases
+    // where there will be error from the api
+    //if (options.needsAuth && !request.token) {
+    //  return Promise.reject(new Error("Unauthorized"));
+    //}
+
+    var url = config.baseApiUrl + options.path;
+    var headers = {};
+    if (options.data) headers["Content-Type"] = "application/json";
+    if (request.token) headers["Authorization"] = "Bearer " + request.token;
+    if (request.userId) headers["X-User-Id"] = request.userId;
+    var fetchOptions = {
+      method: options.method || "GET",
+      body: JSON.stringify(options.data),
+      headers: new Headers(headers),
+    };
+
+    return fetch(url, fetchOptions)
+      .then(function (res) {
+        return res.json();
+      })
+      .then(function (res) {
+        // Fetch doesn't reject in case of code 400+,
+        // only when actual network error.
+        if (res.error) {
+          throw new Error(res.error);
+        }
+        log("Request successful", fetchOptions.method, options.path, res);
+        return res;
+      });
+  }
+
+  // Will be set as soon as we have it.
+  request.token = undefined;
+  request.userId = undefined;
 
   /* App */
 
+  // TODO move it to mongo
   var state = assign(
     {
       subLang: "auto",
       trLang: "en",
       shareReminderCounter: 0,
-      history: [],
     },
     getState()
   );
@@ -267,7 +306,7 @@
     var node = div({ classes: ["dialog", "hidden"] });
 
     function render(nextProps) {
-      $(node, [div({ className: "window" }, nextProps.children)]);
+      $(node, [div({ classes: ["window"] }, nextProps.children)]);
       return node;
     }
 
@@ -290,7 +329,7 @@
   }
 
   function Stream(props) {
-    var node = div({ className: "screen stream hidden" });
+    var node = div({ classes: ["screen", "stream", "hidden"] });
     var sectionNodes;
     var sections = [];
     var isEmpty = true;
@@ -317,10 +356,10 @@
       section.setProps({
         text: text,
         isPrimary: true,
-        onTranslate: function (params, callback) {
-          props.onTranslate(params, function (data) {
-            callback(data);
+        onTranslate: function (params) {
+          return props.onTranslate(params).then(function (data) {
             setTimeout(scrollRenderController.check, 100);
+            return data;
           });
         },
       });
@@ -352,7 +391,7 @@
 
     function render() {
       return $(node, [
-        (sectionNodes = div({ className: "sections" }, [
+        (sectionNodes = div({ classes: ["sections"] }, [
           // Initial entry
           // People don't expect that they receive subtitles only if they play the movie.
           renderSection("Start playing a movie to receive subtitles…"),
@@ -385,11 +424,14 @@
         }).render();
       }
 
-      props.onTranslate({ words: param.words, subtitle: props.text }, function (
-        translation
-      ) {
-        setProps({ translation: translation, selected: param.words }).render();
-      });
+      props
+        .onTranslate({ words: param.words, subtitle: props.text })
+        .then(function (translation) {
+          setProps({
+            translation: translation,
+            selected: param.words,
+          }).render();
+        });
     }
 
     function setProps(nextProps) {
@@ -527,7 +569,7 @@
 
   function Jumper(props) {
     var node = button({
-      className: "icon-button jumper-button",
+      classes: ["icon-button", "jumper-button"],
       onclick: props.onScrollToEnd,
     });
 
@@ -548,7 +590,7 @@
 
   function Translation(props) {
     var api;
-    var node = div({ className: "translation" });
+    var node = div({ classes: ["translation"] });
 
     function setProps(nextProps) {
       assign(props, nextProps);
@@ -592,11 +634,38 @@
     });
   }
 
+  function UpgradePrompt() {
+    function render() {
+      return $(
+        div({ classes: ["upgrade-prompt"] }, [
+          div({ classes: ["content"] }, [
+            h2({ textContent: "LingvoTV Premium" }),
+            p({
+              textContent:
+                "Improve your vocabulary by rereading the new words after watching the movie!",
+            }),
+            a({
+              classes: ["control", "upgrade"],
+              textContent: "Upgrade",
+              href: config.baseUrl + "/#pricing",
+            }),
+          ]),
+        ])
+      );
+    }
+
+    return {
+      render: render,
+    };
+  }
+
   function History(props) {
-    var node = div({ className: "screen history hidden" });
-    var lastHistoryLength = state.history.length;
+    var node = div({ classes: ["screen", "history", "hidden"] });
+    var historyData = props.historyData;
+    var lastHistoryLength = historyData.length;
     var api;
     var selectedMap = {};
+    var upgradePrompt = UpgradePrompt();
 
     function onSelect(id, e) {
       e.preventDefault();
@@ -621,38 +690,38 @@
     }
 
     function add(params) {
-      var entry = state.history.filter(function (entry) {
+      var entry = historyData.find(function (entry) {
         return entry.subtitle === params.subtitle;
-      })[0];
+      });
 
       if (entry) {
         // Add new lookups to the entry.
-        entry.words = params.words;
+        historyData.update(entry, { words: params.words });
       } else {
-        state.history.push({
-          time: Date.now(),
+        entry = {
+          createdAt: Date.now(),
           subtitle: params.subtitle,
           words: params.words,
-        });
+        };
+        historyData.create(entry);
       }
 
-      setState(state);
       render();
       return api;
     }
 
     function deleteSelected() {
-      state.history = state.history.filter(function (entry, id) {
-        return !selectedMap[id];
+      var deleteEntries = historyData.filter(function (entry, index) {
+        return selectedMap[index];
       });
       selectedMap = {};
+      historyData.delete(deleteEntries);
       render();
-      setState(state);
     }
 
     function show() {
-      if (state.history.length !== lastHistoryLength) {
-        lastHistoryLength = state.history.length;
+      if (historyData.length !== lastHistoryLength) {
+        lastHistoryLength = historyData.length;
         render();
       }
       node.classList.remove("hidden");
@@ -669,7 +738,7 @@
     function renderSeparator(date) {
       var dateStr =
         date.getDate() + "." + (date.getMonth() + 1) + "." + date.getFullYear();
-      return div({ className: "date-separator" }, [
+      return div({ classes: ["date-separator"] }, [
         span({ textContent: dateStr }),
       ]);
     }
@@ -694,7 +763,7 @@
       if (props.isInEditMode) {
         return div(
           {
-            className: "edit-mode-container",
+            classes: ["edit-mode-container"],
             onclick: onSelect.bind(null, id),
           },
           [
@@ -714,11 +783,14 @@
     function render() {
       var content;
 
-      if (state.history.length) {
-        content = state.history.reduce(function (rows, entry, i, entries) {
+      if (historyData.length) {
+        content = historyData.reduce(function (rows, entry, i, entries) {
           var prevEntry = entries[i - 1];
-          var currDate = new Date(entry.time);
-          if (!prevEntry || !isSameDay(new Date(prevEntry.time), currDate)) {
+          var currDate = new Date(entry.createdAt);
+          if (
+            !prevEntry ||
+            !isSameDay(new Date(prevEntry.createdAt), currDate)
+          ) {
             rows.push(renderSeparator(currDate));
           }
           rows.push(renderSection(entry, i));
@@ -726,13 +798,16 @@
         }, []);
       } else {
         content = [
-          div({ className: "empty" }, [
-            h1({ textContent: "No entries found" }),
+          div({ classes: ["empty"] }, [
+            h2({ textContent: "No entries found" }),
             p({ textContent: "Click on subtitles to translate." }),
           ]),
         ];
       }
 
+      if (props.featuresData.history === false) {
+        content.push(upgradePrompt.render());
+      }
       return $(node, content);
     }
 
@@ -763,7 +838,7 @@
     }
 
     function renderButtons() {
-      if (!props.canEdit) return;
+      if (props.historyData.length === 0) return;
 
       return [
         button({
@@ -781,9 +856,9 @@
 
     function render() {
       return $(node, [
-        div({ className: "placeholder" }),
+        div({ classes: ["placeholder"] }),
         div({ textContent: "History", classes: ["title"] }),
-        div({ className: "button-container" }, renderButtons()),
+        div({ classes: ["button-container"] }, renderButtons()),
       ]);
     }
 
@@ -805,7 +880,7 @@
       return $(node, [
         button({
           textContent: "Delete",
-          className: "text-button",
+          classes: ["text-button"],
           disabled: !props.buttonsEnabled,
           onclick: props.onDelete,
         }),
@@ -827,7 +902,7 @@
   }
 
   function Menu(props) {
-    var node = div({ className: "screen menu hidden" });
+    var node = div({ classes: ["screen menu hidden"] });
 
     function onChangeSubLang(e) {
       props.onChangeSubLang(e.target.value);
@@ -855,24 +930,24 @@
       var id = Math.random();
       $(node, [
         section([
-          div({ className: "column" }, [
+          div({ classes: ["column"] }, [
             label({ textContent: "Subtitles Language", for: "subLang" + id }),
             select(
               {
                 id: "subLang" + id,
-                className: "control",
+                classes: ["control"],
                 value: state.subLang,
                 onchange: onChangeSubLang,
               },
               renderLangOptions()
             ),
           ]),
-          div({ className: "column" }, [
+          div({ classes: ["column"] }, [
             label({ textContent: "Translation Language", for: "trLang" + id }),
             select(
               {
                 id: "trLang" + id,
-                className: "control",
+                classes: ["control"],
                 value: state.trLang,
                 onchange: onChangeTrLang,
               },
@@ -898,7 +973,7 @@
     var dialog = new Dialog();
 
     function render(nextProps) {
-      var content = ul({ className: "connect-help" }, [
+      var content = ul({ classes: ["connect-help"] }, [
         h2({ textContent: "Please make sure that:" }),
         li({ textContent: "You are logged in here, in the web app." }),
         li({
@@ -908,7 +983,7 @@
             "</b>",
         }),
         li({
-          textContent: "Movie is playing in Chrome browser with subtitles",
+          textContent: "Movie is playing in Chrome browser with subtitles on",
         }),
         div({ classes: ["actions-bar"] }, [
           button({
@@ -971,9 +1046,20 @@
         return Promise.all([
           okta.tokenManager.get("accessToken"),
           okta.tokenManager.get("idToken"),
-        ]).then(function ([accessToken, idToken]) {
-          return okta.getUser(accessToken, idToken);
-        });
+        ])
+          .then(function ([accessToken, idToken]) {
+            return okta.getUser(accessToken, idToken);
+          })
+          .then(function (user) {
+            return {
+              email: user.email,
+              familyName: user.family_name,
+              givenName: user.given_name,
+              preferredUsername: user.preferred_username,
+              locale: user.locale,
+              sub: user.sub,
+            };
+          });
       }
 
       function onGotUser(user) {
@@ -987,12 +1073,12 @@
         email = user.email;
         authStateMachine.state = "authorized";
         render();
-        props.onLogin(email);
+        props.onLogin(user);
         ga("set", "userId", email);
       }
 
       function onError(err) {
-        error("Auth error:", err.message);
+        log("User session not found:", err.message);
         authStateMachine.state = "unauthorized";
         render();
       }
@@ -1099,47 +1185,60 @@
     var selected;
 
     function onSelect(name) {
-      if (selected === items[name]) return;
+      if (selected === name) return;
       if (props.onSelect(name) === false) return;
       select(name);
     }
 
     function select(name) {
-      unselect();
-      selected = items[name];
-      selected.classList.add("selected");
-    }
-
-    function unselect() {
-      if (!selected) return;
-      selected.classList.remove("selected");
-      selected = null;
+      selected = name;
+      render();
     }
 
     function render() {
       $(node, [
         (items.login = button({
-          classes: ["icon-button", "login-button"],
+          classes: [
+            "icon-button",
+            "login-button",
+            selected === "login" && "selected",
+          ],
           textContent: "Connect",
           onclick: onSelect.bind(null, "login"),
         })),
         (items.stream = button({
-          classes: ["icon-button", "stream-button"],
+          classes: [
+            "icon-button",
+            "stream-button",
+            selected === "stream" && "selected",
+          ],
           textContent: "Subtitles",
           onclick: onSelect.bind(null, "stream"),
         })),
         (items.history = button({
-          classes: ["icon-button", "history-button"],
+          classes: [
+            "icon-button",
+            "history-button",
+            selected === "history" && "selected",
+          ],
           textContent: "History",
           onclick: onSelect.bind(null, "history"),
         })),
         (items.menu = button({
-          classes: ["icon-button", "settings-button"],
+          classes: [
+            "icon-button",
+            "settings-button",
+            selected === "menu" && "selected",
+          ],
           textContent: "Settings",
           onclick: onSelect.bind(null, "menu"),
         })),
         (items.feedback = button({
-          classes: ["icon-button", "feedback-button"],
+          classes: [
+            "icon-button",
+            "feedback-button",
+            selected === "feedback" && "selected",
+          ],
           textContent: "Feedback",
           onclick: onSelect.bind(null, "feedback"),
         })),
@@ -1151,7 +1250,6 @@
       node: node,
       render: render,
       select: select,
-      unselect: unselect,
       show: nav.show,
       hide: nav.hide,
     };
@@ -1182,7 +1280,7 @@
   }
 
   function ShareReminder() {
-    var node = div({ className: "share-reminder" });
+    var node = div({ classes: ["share-reminder"] });
     var maxReminds = 3;
     var wait = 3 * 60 * 1000;
     var minDelayAfterSubtitle = 3 * 1000;
@@ -1197,13 +1295,13 @@
     }
 
     function renderShare() {
-      var content = div({ className: "social-share" }, [
+      var content = div({ classes: ["social-share"] }, [
         h2({
           textContent: "Share LingvoTV with friends and receive an upgrade!",
         }),
         div(
           {
-            className: "ssk-block",
+            classes: ["ssk-block"],
             dataset: {
               text: "Learn languages while watching movies on Netflix and co.",
             },
@@ -1211,17 +1309,17 @@
           [
             a({
               href: "",
-              className: "ssk ssk-text ssk-facebook",
+              classes: ["ssk ssk-text ssk-facebook"],
               textContent: "Share on Facebook",
             }),
             a({
               href: "",
-              className: "ssk ssk-text ssk-twitter",
+              classes: ["ssk ssk-text ssk-twitter"],
               textContent: "Share on Twitter",
             }),
             a({
               href: "",
-              className: "ssk ssk-text ssk-vk",
+              classes: ["ssk ssk-text ssk-vk"],
               textContent: "Share on VK",
             }),
           ]
@@ -1254,7 +1352,7 @@
     }
 
     function renderQuestion() {
-      var content = div({ className: "like-question" }, [
+      var content = div({ classes: ["like-question"] }, [
         h2({ textContent: "Do you like Lingvo TV?" }),
         div({ classes: ["actions-bar"] }, [
           button({
@@ -1309,7 +1407,7 @@
   }
 
   function App(props) {
-    var node = div({ className: "app" });
+    var node = div({ classes: ["app"] });
     var stream;
     var history;
     var historyHeader;
@@ -1320,6 +1418,7 @@
     var controller;
     var jumper;
     var shareReminder;
+    var historyData = props.historyData;
 
     controller = RenderController({
       onShow: function (inst) {
@@ -1336,18 +1435,121 @@
       },
     });
 
+    nav = MainNav({
+      onSelect: function (name) {
+        switch (name) {
+          case "login":
+            return controller.show(login);
+          case "stream":
+            return controller.show(stream);
+          case "history":
+            return controller.show(history);
+          case "menu":
+            return controller.show(menu);
+          case "feedback":
+            feedback();
+            return false;
+        }
+      },
+    });
+
+    login = Login({
+      userData: props.userData,
+      onLogin: props.onLogin,
+    });
+
+    stream = Stream({
+      onTranslate: function (params) {
+        history.add(params);
+        historyHeader.setProps({ canEdit: true }).render();
+        return onTranslate(params.words);
+      },
+      onShowJumper: function () {
+        jumper.show();
+      },
+      onHideJumper: function () {
+        jumper.hide();
+      },
+    });
+
+    jumper = Jumper({
+      onScrollToEnd: stream.scrollToEnd,
+    });
+
+    history = History({
+      historyData: historyData,
+      featuresData: props.featuresData,
+      onTranslate: function (params) {
+        return onTranslate(params.words);
+      },
+      onShow: function () {
+        historyData.read().then(function () {
+          historyHeader.render();
+          history.render();
+        });
+        historyHeader.show();
+      },
+      onHide: function () {
+        historyHeader.hide();
+      },
+      onSelect: function (params) {
+        historyFooter
+          .setProps({ buttonsEnabled: params.selected.length > 0 })
+          .render();
+      },
+    });
+    function onDoneHistoryEdit() {
+      history.setProps({ isInEditMode: false }).render();
+      historyHeader
+        .setProps({
+          isEditing: false,
+          canEdit: historyData.length > 0,
+        })
+        .render();
+      historyFooter.hide();
+      nav.show();
+    }
+    historyHeader = HistoryHeader({
+      historyData: historyData,
+      onEdit: function () {
+        history.setProps({ isInEditMode: true }).render();
+        historyHeader.setProps({ isEditing: true }).render();
+        historyFooter.show();
+        nav.hide();
+      },
+      onDone: onDoneHistoryEdit,
+    });
+    historyFooter = HistoryFooter({
+      onDelete: function () {
+        history.deleteSelected();
+        if (!historyData.length) onDoneHistoryEdit();
+      },
+    });
+
+    menu = Menu({
+      languages: config.languages,
+      onChangeSubLang: function (value) {
+        setState({ subLang: value });
+      },
+      onChangeTrLang: function (value) {
+        setState({ trLang: value });
+      },
+    });
+
+    shareReminder = new ShareReminder();
+
     function onSubtitle(data) {
       stream.append({ text: data.original });
       shareReminder.onSubtitle(data);
     }
 
-    function onTranslate(words, callback) {
+    function onTranslate(words) {
       words = words
         .map(function (word) {
           return word.text;
         })
         .join(" ");
-      props.onTranslate(words, callback);
+      return props.onTranslate(words);
     }
 
     function requestAuthorization() {
@@ -1355,120 +1557,15 @@
     }
 
     function render() {
-      nav = MainNav({
-        onSelect: function (name) {
-          switch (name) {
-            case "login":
-              return controller.show(login);
-            case "stream":
-              return controller.show(stream);
-            case "history":
-              return controller.show(history);
-            case "menu":
-              return controller.show(menu);
-            case "feedback":
-              feedback();
-              return false;
-          }
-        },
-      });
-      nav.render();
-
-      login = Login({
-        onLogin: props.onLogin,
-      });
-      login.render();
-
-      stream = Stream({
-        onTranslate: function (params, callback) {
-          onTranslate(params.words, callback);
-          history.add(params);
-          historyHeader.setProps({ canEdit: true }).render();
-        },
-        onShowJumper: function () {
-          jumper.show();
-        },
-        onHideJumper: function () {
-          jumper.hide();
-        },
-      });
-      stream.render();
-
-      jumper = Jumper({
-        onScrollToEnd: stream.scrollToEnd,
-      });
-
-      history = History({
-        onTranslate: function (params, callback) {
-          onTranslate(params.words, callback);
-        },
-        onShow: function () {
-          historyHeader.show();
-        },
-        onHide: function () {
-          historyHeader.hide();
-        },
-        onSelect: function (params) {
-          historyFooter
-            .setProps({ buttonsEnabled: params.selected.length > 0 })
-            .render();
-        },
-      });
-      history.render();
-
-      historyHeader = HistoryHeader({
-        canEdit: state.history.length > 0,
-        onEdit: function () {
-          history.setProps({ isInEditMode: true }).render();
-          historyHeader.setProps({ isEditing: true }).render();
-          historyFooter.show();
-          nav.hide();
-        },
-        onDone: onDoneHistoryEdit,
-      });
-      historyHeader.render();
-
-      historyFooter = HistoryFooter({
-        onDelete: function () {
-          history.deleteSelected();
-          if (!state.history.length) onDoneHistoryEdit();
-        },
-      });
-      historyFooter.render();
-      function onDoneHistoryEdit() {
-        history.setProps({ isInEditMode: false }).render();
-        historyHeader
-          .setProps({
-            isEditing: false,
-            canEdit: state.history.length > 0,
-          })
-          .render();
-        historyFooter.hide();
-        nav.show();
-      }
-
-      menu = Menu({
-        languages: conf.languages,
-        onChangeSubLang: function (value) {
-          setState({ subLang: value });
-        },
-        onChangeTrLang: function (value) {
-          setState({ trLang: value });
-        },
-      });
-      menu.render();
-
-      shareReminder = new ShareReminder();
-
       $(node, [
-        nav.node,
-        login.node,
-        stream.node,
-        history.node,
-        historyHeader.node,
-        historyFooter.node,
+        nav.render(),
+        login.render(),
+        stream.render(),
+        history.render(),
+        historyHeader.render(),
+        historyFooter.render(),
         jumper.node,
-        menu.node,
+        menu.render(),
         shareReminder.node,
       ]);
 
@@ -1483,59 +1580,75 @@
     };
   }
 
-  function Api(props) {
-    var socket;
+  function Socketio(props) {
+    var connection;
 
     function connect() {
-      socket = io.connect(conf.baseUrl, {
+      connection = io.connect(config.baseApiUrl, {
         transports: ["polling"],
       });
 
-      socket.on("connect", function () {
-        log("Socket connected");
+      connection.on("connect", function () {
+        log("Socketio connected");
       });
 
-      socket.on("disconnect", function () {
-        log("Socket disconnected");
+      connection.on("disconnect", function () {
+        log("Socketio disconnected");
       });
 
-      socket.on("authorized", function (code) {
-        log("Socket connection authorized:", code);
+      connection.on("authorized", function (code) {
+        log("Socketio connection authorized:", code);
       });
 
-      socket.on("subtitle", function (data) {
-        log("Received subtitle:", data);
+      connection.on("subtitle", function (data) {
+        log("Socketio received subtitle:", data);
         props.onSubtitle(data);
       });
 
-      socket.on("authRequest", function () {
-        log("Auth requested by server");
+      connection.on("authRequest", function () {
+        log("Socketio auth requested by server");
         props.onRequestAuth();
       });
 
-      return socket;
+      return connection;
     }
 
     function authorize(code) {
       log("Sending authorization code:", code);
-      socket.emit("authorize", code);
+      connection.emit("authorize", code);
     }
 
-    function translate(text, callback) {
+    return {
+      connect: connect,
+      authorize: authorize,
+    };
+  }
+
+  function UserData() {
+    var data = {};
+
+    function update(nextData) {
+      // TODO Optimistically, rollback on error
+      assign(data, nextData);
+
+      return request({
+        method: "PUT",
+        path: "/user",
+        data: data,
+        needsAuth: true,
+      }).catch(function (err) {
+        error("Updating user failed:", err.message);
+      });
+    }
+
+    return assign(data, {
+      update: update,
+    });
+  }
+
+  function TranslationData() {
+    function read(text) {
       var lang = state.subLang + "-" + state.trLang;
-      var url = conf.baseUrl + "/translation/" + lang + "/" + encodeURI(text);
-      fetch(url)
-        .then(function (res) {
-          return res.text();
-        })
-        .then(function (text) {
-          try {
-            callback(JSON.parse(text));
-          } catch (err) {
-            error(err);
-          }
-        })
-        .catch(error);
 
       ga("send", {
         hitType: "event",
@@ -1543,20 +1656,120 @@
         eventAction: "translate",
         eventLabel: lang,
       });
+
+      return request({
+        path: "/translation/" + lang + "/" + encodeURI(text),
+        needsAuth: true,
+      }).catch(function (err) {
+        error("Fetching translation failed:", err.message);
+      });
     }
 
     return {
-      connect: connect,
-      translate: translate,
-      authorize: authorize,
+      read: read,
     };
+  }
+
+  function FeaturesData() {
+    var data = {
+      history: true,
+    };
+
+    function read() {
+      return request({ path: "/features", needsAuth: true })
+        .then(function (res) {
+          return Object.assign(data, res);
+        })
+        .catch(function (err) {
+          error("Fetching features failed:", err.message);
+        });
+    }
+
+    return assign(data, { read: read });
+  }
+
+  function HistoryData() {
+    var data = [];
+
+    function create(entry) {
+      // Optimistically add
+      data.push(entry);
+
+      return request({
+        method: "POST",
+        path: "/history",
+        data: entry,
+        needsAuth: true,
+      }).catch(function (err) {
+        // TODO recover in case of res.error
+        error("Creating history entry failed:", err.message);
+      });
+    }
+
+    function read() {
+      return request({ path: "/history", needsAuth: true })
+        .then(function (res) {
+          data.splice.apply(data, [0, data.length].concat(res));
+        })
+        .catch(function (err) {
+          // TODO recover in case of res.error
+          error("Loading history failed:", err.message);
+        });
+    }
+
+    function update(entry, update) {
+      // Optimistically update
+      assign(entry, update);
+
+      return request({
+        method: "PUT",
+        path: "/history/" + entry._id,
+        data: entry,
+        needsAuth: true,
+      }).catch(function (err) {
+        // TODO recover in case of res.error
+        error("Updating history entry failed:", err.message);
+      });
+    }
+
+    function del(entries) {
+      // Optimistic removal.
+      entries.forEach(function (entry) {
+        data.splice(data.indexOf(entry), 1);
+      });
+
+      var entryIds = entries
+        .map(function (entry) {
+          return entry._id;
+        })
+        .filter(Boolean);
+
+      // E.g. when only demo item was in the list and it has no _id
+      if (!entryIds.length) return;
+
+      return request({
+        method: "DELETE",
+        path: "/history/" + entryIds,
+        needsAuth: true,
+      }).catch(function (err) {
+        // TODO recover in case of res.error
+        error("Saving history entry failed:", err.message);
+      });
+    }
+
+    return assign(data, {
+      create: create,
+      read: read,
+      update: update,
+      delete: del,
+    });
   }
 
   function init() {
     MBP.enableActive();
     FastClick.attach(document.body);
     var app;
-    var api = Api({
+    var socketio = Socketio({
       onSubtitle: function (data) {
         app.onSubtitle(data);
       },
@@ -1564,13 +1777,27 @@
         app.requestAuthorization();
       },
     });
+    var featuresData = FeaturesData();
+    var historyData = HistoryData();
+    var translationData = TranslationData();
+    var userData = UserData();
 
     app = App({
-      onTranslate: api.translate,
-      onLogin: api.authorize,
+      onTranslate: translationData.read,
+      onLogin: function (oktaUser) {
+        request.token = oktaUser.sub;
+        socketio.authorize(oktaUser.email);
+        userData.update(oktaUser).then(function (user) {
+          request.userId = user._id;
+          featuresData.read().then(app.render);
+        });
+      },
+      featuresData: featuresData,
+      historyData: historyData,
+      userData: userData,
     });
 
-    api.connect();
+    socketio.connect();
     app.render();
 
     document.body.appendChild(app.node);

@@ -44,7 +44,9 @@ a:visited {
   -moz-appearance: textfield;
 }
 
-.control {
+.control,
+.control:hover {
+  display: inline-block;
   border: 1px solid #909090;
   color: #fff;
   background: inherit;
@@ -52,6 +54,7 @@ a:visited {
   font-weight: 100;
   font-size: 1.1em;
   min-width: 50px;
+  text-decoration: none;
 }
 .control:active,
 .control:focus {
@@ -154,9 +157,30 @@ a:visited {
   margin-left: 20px;
 }
 
+/* Upgrade Prompt */
+.upgrade-prompt {
+  background: rgba(0, 0, 0, 0.9);
+  height: 100%;
+  top: 0;
+  position: absolute;
+  width: 100%;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  /* 50px is compensation for the bottom menu */
+  padding: 0 10vw 50px;
+  text-align: center;
+}
+
+.upgrade-prompt .upgrade {
+  margin-top: 2em;
+}
+
 /* History */
 .history {
-  padding-top: 55px;
+  margin-top: 45px;
+  padding-top: 10px;
 }
 .history .empty {
   text-align: center;
