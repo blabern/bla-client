@@ -983,7 +983,7 @@
             "</b>",
         }),
         li({
-          textContent: "Movie is playing in Chrome browser with subtitles",
+          textContent: "Movie is playing in Chrome browser with subtitles on",
         }),
         div({ classes: ["actions-bar"] }, [
           button({
