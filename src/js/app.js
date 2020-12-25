@@ -394,7 +394,7 @@
         (sectionNodes = div({ classes: ["sections"] }, [
           // Initial entry
           // People don't expect that they receive subtitles only if they play the movie.
-          renderSection("Start playing a movie to receive subtitles…"),
+          renderSection("Start playing a movie with subtitles on"),
         ])),
       ]);
     }
