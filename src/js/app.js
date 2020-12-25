@@ -268,6 +268,11 @@
   }
 
   function feedback() {
+    ga("send", {
+      hitType: "event",
+      eventCategory: "feedback",
+      eventAction: "feedbackFromMainNav",
+    });
     location.href = "mailto:help@lingvo.tv?subject=Help";
   }
 
