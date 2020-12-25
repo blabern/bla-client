@@ -1085,7 +1085,7 @@
       getUser().then(onGotUser).catch(onError);
     }
 
-    function onLogin(e) {
+    function onLogin() {
       authStateMachine.state = "pending";
       render();
       okta.token.getWithRedirect({
@@ -1167,6 +1167,7 @@
         });
       // User has just registered and we need to log them in.
     } else if (isActivation) {
+      props.onSignUp();
       onLogin();
     }
 
@@ -1456,6 +1457,7 @@
     login = Login({
       userData: props.userData,
       onLogin: props.onLogin,
+      onSignUp: props.onSignUp,
     });
 
     stream = Stream({
@@ -1790,6 +1792,19 @@
         userData.update(oktaUser).then(function (user) {
           request.userId = user._id;
           featuresData.read().then(app.render);
+        });
+        ga("send", {
+          hitType: "event",
+          eventCategory: "signin",
+          eventAction: "signin",
+          eventLabel: oktaUser.email,
+        });
+      },
+      onSignUp: function () {
+        ga("send", {
+          hitType: "event",
+          eventCategory: "signup",
+          eventAction: "signup",
         });
       },
       featuresData: featuresData,
