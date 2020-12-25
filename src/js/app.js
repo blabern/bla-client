@@ -635,6 +635,17 @@
   }
 
   function UpgradePrompt() {
+    function onUpgrade(e) {
+      e.preventDefault();
+      ga("send", {
+        hitType: "event",
+        eventCategory: "monetization",
+        eventAction: "upgradeFromHistory",
+        eventLabel: "upgrade",
+      });
+      location.href = e.target.href;
+    }
+
     function render() {
       return $(
         div({ classes: ["upgrade-prompt"] }, [
@@ -648,6 +659,7 @@
               classes: ["control", "upgrade"],
               textContent: "Upgrade",
               href: config.baseUrl + "/#pricing",
+              onclick: onUpgrade,
             }),
           ]),
         ])
@@ -1795,7 +1807,7 @@
         });
         ga("send", {
           hitType: "event",
-          eventCategory: "signin",
+          eventCategory: "signon",
           eventAction: "signin",
           eventLabel: oktaUser.email,
         });
@@ -1803,7 +1815,7 @@
       onSignUp: function () {
         ga("send", {
           hitType: "event",
-          eventCategory: "signup",
+          eventCategory: "signon",
           eventAction: "signup",
         });
       },
