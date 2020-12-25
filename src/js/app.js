@@ -1091,7 +1091,6 @@
         authStateMachine.state = "authorized";
         render();
         props.onLogin(user);
-        ga("set", "userId", email);
       }
 
       function onError(err) {
@@ -1804,17 +1803,18 @@
     app = App({
       onTranslate: translationData.read,
       onLogin: function (oktaUser) {
-        request.token = oktaUser.sub;
-        socketio.authorize(oktaUser.email);
-        userData.update(oktaUser).then(function (user) {
-          request.userId = user._id;
-          featuresData.read().then(app.render);
-        });
+        ga("set", "userId", oktaUser.email);
         ga("send", {
           hitType: "event",
           eventCategory: "signon",
           eventAction: "signin",
           eventLabel: oktaUser.email,
+        });
+        request.token = oktaUser.sub;
+        socketio.authorize(oktaUser.email);
+        userData.update(oktaUser).then(function (user) {
+          request.userId = user._id;
+          featuresData.read().then(app.render);
         });
       },
       onSignUp: function () {
