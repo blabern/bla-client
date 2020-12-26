@@ -1400,7 +1400,6 @@
 
     function show() {
       if (state.shareReminderCounter >= maxReminds) return;
-      console.log(Date.now() - lastSubtitleTime, minDelayAfterSubtitle);
       if (Date.now() - lastSubtitleTime < minDelayAfterSubtitle) {
         return setTimeout(show, 5000);
       }
@@ -1677,7 +1676,38 @@
   }
 
   function TranslationData() {
-    function read(text) {
+    function formatResponse(data) {
+      var ret = {
+        main: data[0][0][0],
+        others: [],
+        thesaurus: [],
+      };
+
+      if (data[1]) {
+        data[1].forEach(function (tr) {
+          ret.others.push({
+            type: tr[0],
+            translations: tr[1],
+          });
+        });
+      }
+
+      // Definitions
+      if (data[12]) {
+        data[12].forEach(function (t) {
+          ret.thesaurus.push({
+            type: t[0],
+            translations: t[1].map(function (tr) {
+              return tr[0];
+            }),
+          });
+        });
+      }
+
+      return ret;
+    }
+
+    function read(original) {
       var lang = state.subLang + "-" + state.trLang;
 
       ga("send", {
@@ -1687,12 +1717,30 @@
         eventLabel: lang,
       });
 
-      return request({
-        path: "/translation/" + lang + "/" + encodeURI(text),
-        needsAuth: true,
-      }).catch(function (err) {
-        error("Fetching translation failed:", err.message);
-      });
+      var url =
+        "https://translate.googleapis.com/translate_a/single?client=gtx&sl=" +
+        state.subLang +
+        "&tl=" +
+        state.trLang +
+        "&dt=bd&dt=md&dt=t&q=" +
+        encodeURI(original);
+
+      return request({ url: url })
+        .then(function (data) {
+          // Currently we always use the error, because it can't handle a non-json res
+          // when received headers say its json.
+          var translation;
+          try {
+            translation = formatResponse(data);
+          } catch (err) {
+            err.data = data;
+            throw err;
+          }
+          return { original: original, translation: translation };
+        })
+        .catch(function (err) {
+          error("Fetching translation failed:", err.message);
+        });
     }
 
     return {
