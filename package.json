@@ -10,8 +10,8 @@
     "localtunnel": "^1.8.1"
   },
   "scripts": {
-    "start": "npm run static & npm run tunnel:app",
+    "start": "npm run static & npm run tunnel",
     "static": "static . --spa",
-    "tunnel:app": "lt -s lingvoclient -p 8080"
+    "tunnel": "lt -s lingvoclient -p 8080"
   }
 }

@@ -1,6 +1,7 @@
 html,
 body {
   background: #000;
+  color: #fff;
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
 }
 input,
@@ -26,6 +27,7 @@ input[type="checkbox"] {
 input[type="checkbox"]:checked {
   background: #fff;
 }
+a,
 a:visited {
   color: #fff;
 }
@@ -289,28 +291,28 @@ a:visited {
 .jumper-button:active {
   background-image: url(../img/icons/arrows-active.svg);
 }
-/* Menu */
-.menu {
+/* Settings */
+.settings {
 }
-.menu section {
+.settings section {
   display: flex;
   margin-bottom: 20px;
 }
-.menu .column {
+.settings .column {
   flex: 1;
 }
-.menu .column:first-child {
+.settings .column:first-child {
   margin-right: 5%;
 }
-.menu label {
+.settings label {
   display: block;
   margin-bottom: 5px;
   font-size: 0.8em;
 }
-.menu select {
+.settings select {
   width: 100%;
 }
-.menu hr {
+.settings hr {
   margin: 10px 0;
   height: 1px;
   border: none;
@@ -344,25 +346,33 @@ a:visited {
 }
 
 /* Connect help */
-.connect-help {
-  color: #000;
-  margin: 15px;
-  padding-left: 1em;
+.help-dialog {
+  margin: 1em;
   text-align: left;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
-.connect-help h2 {
-  text-align: center;
+.help-dialog .content {
+  overflow: hidden;
 }
-.connect-help li {
-  list-style-type: decimal;
-  margin-bottom: 1em;
+.help-dialog h1 {
+  margin-top: 0;
+  font-size: 1.5em;
 }
-.connect-help .actions-bar {
+.help-dialog .faq-accordion {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.help-dialog .faq-accordion .tabs {
+  overflow: scroll;
+}
+.help-dialog .actions-bar {
   text-align: right;
-  margin: 10px 0 10px 0;
+  margin-top: 1em;
 }
-.connect-help .done {
-  color: #000;
+.help-dialog .done {
 }
 
 /* Main Navigation */
@@ -460,36 +470,28 @@ nav.bottom {
 
 .dialog .window {
   border-radius: 5px;
-  background: #fff;
-  max-width: 94vw;
-  max-height: 94vh;
+  background: rgba(0, 0, 0, 0.8);
+  max-height: calc(100% - 2em);
+  display: flex;
+  margin: 1em;
 }
 
-/* Share reminder */
-.share-reminder {
+/* Share Dialog */
+.share-dialog {
   text-align: center;
 }
-.share-reminder .social-share {
+.share-dialog .social-share {
   margin: 0 10px;
 }
-.share-reminder .ssk-block {
+.share-dialog .ssk-block {
   display: inline-block;
   width: 250px;
 }
-.share-reminder .ssk {
+.share-dialog .ssk {
   margin-bottom: 10px;
 }
-.share-reminder .actions-bar {
+.share-dialog .actions-bar {
   margin-bottom: 20px;
-}
-.share-reminder .control {
-  color: #000;
-}
-.share-reminder .like-question {
-  margin: 0 10px;
-}
-.share-reminder .no {
-  margin-right: 10px;
 }
 
 /* Preload images to avoid flicker */
