@@ -1796,10 +1796,9 @@
 
     function read() {
       if (!promise) {
-        var host = "https://lingvo.tv";
-        // host = 'https://lingvo.loca.lt'
-        // host = 'http://localhost:8081
-        promise = request({ url: host + "/faq.html?" + Date.now() });
+        var baseUrl = config.baseUrl;
+        // baseUrl = 'https://lingvo.loca.lt'
+        promise = request({ url: baseUrl + "/faq.html?" + Date.now() });
       }
 
       return promise
