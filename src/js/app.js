@@ -1033,6 +1033,7 @@
       render: render,
       show: show,
       hide: dialog.hide,
+      hide: dialog.hide,
     };
   }
 
@@ -1131,6 +1132,7 @@
     }
 
     function hide() {
+      helpDialog.hide();
       node.classList.add("hidden");
     }
 
