@@ -210,12 +210,14 @@
     //if (options.needsAuth && !request.token) {
     //  return Promise.reject(new Error("Unauthorized"));
     //}
-
     var url = options.url || config.baseApiUrl + options.path;
     var headers = {};
     if (options.data) headers["Content-Type"] = "application/json";
-    if (request.token) headers["Authorization"] = "Bearer " + request.token;
-    if (request.userId) headers["X-User-Id"] = request.userId;
+    // Sending Authorization header activates CORS.
+    if (!options.url) {
+      if (request.token) headers["Authorization"] = "Bearer " + request.token;
+      if (request.userId) headers["X-User-Id"] = request.userId;
+    }
     var fetchOptions = {
       method: options.method || "GET",
       body: JSON.stringify(options.data),
@@ -1011,6 +1013,7 @@
     }
 
     function render(nextProps) {
+      nextProps || (nextProps = {});
       var content = div({ classes: ["help-dialog"] }, [
         div({
           classes: ["content"],
