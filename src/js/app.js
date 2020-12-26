@@ -1778,10 +1778,14 @@
         path: "/history",
         data: entry,
         needsAuth: true,
-      }).catch(function (err) {
-        // TODO recover in case of res.error
-        error("Creating history entry failed:", err.message);
-      });
+      })
+        .then(function (serverEntry) {
+          return assign(entry, serverEntry);
+        })
+        .catch(function (err) {
+          // TODO recover in case of res.error
+          error("Creating history entry failed:", err.message);
+        });
     }
 
     function read() {
