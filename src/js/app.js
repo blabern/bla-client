@@ -650,6 +650,7 @@
   }
 
   function UpgradePrompt() {
+    var node = div({ classes: ["upgrade-prompt", "hidden"] });
     function onUpgrade(e) {
       e.preventDefault();
       ga("send", {
@@ -661,27 +662,35 @@
       location.href = e.target.href;
     }
 
+    function show() {
+      node.classList.remove("hidden");
+    }
+
+    function hide() {
+      node.classList.add("hidden");
+    }
+
     function render() {
-      return $(
-        div({ classes: ["upgrade-prompt"] }, [
-          div({ classes: ["content"] }, [
-            h2({ textContent: "LingvoTV Premium" }),
-            p({
-              textContent:
-                "Improve your vocabulary by rereading the new words after watching the movie!",
-            }),
-            a({
-              classes: ["control", "upgrade"],
-              textContent: "Upgrade",
-              href: config.baseUrl + "/#pricing",
-              onclick: onUpgrade,
-            }),
-          ]),
-        ])
-      );
+      return $(node, [
+        div({ classes: ["content"] }, [
+          h2({ textContent: "LingvoTV Premium" }),
+          p({
+            textContent:
+              "Improve your vocabulary by rereading the new words after watching the movie!",
+          }),
+          a({
+            classes: ["control", "upgrade"],
+            textContent: "Upgrade",
+            href: config.baseUrl + "/#pricing",
+            onclick: onUpgrade,
+          }),
+        ]),
+      ]);
     }
 
     return {
+      show: show,
+      hide: hide,
       render: render,
     };
   }
@@ -689,10 +698,10 @@
   function History(props) {
     var node = div({ classes: ["screen", "history", "hidden"] });
     var historyData = props.historyData;
+    var upgradePrompt = props.upgradePrompt;
     var lastHistoryLength = historyData.length;
     var api;
     var selectedMap = {};
-    var upgradePrompt = UpgradePrompt();
 
     function onSelect(id, e) {
       e.preventDefault();
@@ -832,9 +841,6 @@
         ];
       }
 
-      if (props.featuresData.history === false) {
-        content.push(upgradePrompt.render());
-      }
       return $(node, content);
     }
 
@@ -1434,6 +1440,7 @@
   function App(props) {
     var node = div({ classes: ["app"] });
     var stream;
+    var upgradePrompt;
     var history;
     var historyHeader;
     var historyFooter;
@@ -1444,6 +1451,7 @@
     var jumper;
     var shareReminder;
     var historyData = props.historyData;
+    var featuresData = props.featuresData;
 
     controller = RenderController({
       onShow: function (inst) {
@@ -1502,9 +1510,11 @@
       onScrollToEnd: stream.scrollToEnd,
     });
 
+    upgradePrompt = UpgradePrompt();
+
     history = History({
+      upgradePrompt: upgradePrompt,
       historyData: historyData,
-      featuresData: props.featuresData,
       onTranslate: function (params) {
         return onTranslate(params.words);
       },
@@ -1514,9 +1524,13 @@
           history.render();
         });
         historyHeader.show();
+        if (featuresData.history === false) {
+          upgradePrompt.show();
+        }
       },
       onHide: function () {
         historyHeader.hide();
+        upgradePrompt.hide();
       },
       onSelect: function (params) {
         historyFooter
@@ -1591,6 +1605,7 @@
         login.render(),
         stream.render(),
         history.render(),
+        upgradePrompt.render(),
         historyHeader.render(),
         historyFooter.render(),
         jumper.node,
