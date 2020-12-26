@@ -211,7 +211,7 @@
     //  return Promise.reject(new Error("Unauthorized"));
     //}
 
-    var url = config.baseApiUrl + options.path;
+    var url = options.url || config.baseApiUrl + options.path;
     var headers = {};
     if (options.data) headers["Content-Type"] = "application/json";
     if (request.token) headers["Authorization"] = "Bearer " + request.token;
@@ -224,7 +224,10 @@
 
     return fetch(url, fetchOptions)
       .then(function (res) {
-        return res.json();
+        if (res.headers.get("content-type").includes("application/json")) {
+          return res.json();
+        }
+        return res.text();
       })
       .then(function (res) {
         // Fetch doesn't reject in case of code 400+,
@@ -232,7 +235,12 @@
         if (res.error) {
           throw new Error(res.error);
         }
-        log("Request successful", fetchOptions.method, options.path, res);
+        log(
+          "Request successful",
+          fetchOptions.method,
+          options.path || options.url,
+          res
+        );
         return res;
       });
   }
@@ -918,8 +926,8 @@
     });
   }
 
-  function Menu(props) {
-    var node = div({ classes: ["screen menu hidden"] });
+  function Settings(props) {
+    var node = div({ classes: ["screen", "settings", "hidden"] });
 
     function onChangeSubLang(e) {
       props.onChangeSubLang(e.target.value);
@@ -927,6 +935,10 @@
 
     function onChangeTrLang(e) {
       props.onChangeTrLang(e.target.value);
+    }
+
+    function onShare() {
+      props.shareDialog.show();
     }
 
     function renderLangOptions() {
@@ -945,7 +957,7 @@
 
     function render() {
       var id = Math.random();
-      $(node, [
+      return $(node, [
         section([
           div({ classes: ["column"] }, [
             label({ textContent: "Subtitles Language", for: "subLang" + id }),
@@ -973,9 +985,12 @@
           ]),
         ]),
         hr(),
+        button({
+          classes: ["control"],
+          textContent: "Share",
+          onclick: onShare,
+        }),
       ]);
-
-      return node;
     }
 
     return {
@@ -986,36 +1001,37 @@
     };
   }
 
-  function ConnectHelp() {
+  function HelpDialog() {
     var dialog = new Dialog();
+    var faqData = FaqData();
+
+    function show() {
+      dialog.show();
+      faqData.read().then(render);
+    }
 
     function render(nextProps) {
-      var content = ul({ classes: ["connect-help"] }, [
-        h2({ textContent: "Please make sure that:" }),
-        li({ textContent: "You are logged in here, in the web app." }),
-        li({
-          innerHTML:
-            "LingvoTV Chrome Extension on your desktop browser is installed and uses <b>" +
-            nextProps.email +
-            "</b>",
+      var content = div({ classes: ["help-dialog"] }, [
+        div({
+          classes: ["content"],
+          innerHTML: nextProps.content || "Loading…",
         }),
-        li({
-          textContent: "Movie is playing in Chrome browser with subtitles on",
-        }),
-        div({ classes: ["actions-bar"] }, [
-          button({
-            classes: ["control", "done"],
-            textContent: "Ok",
-            onclick: dialog.hide,
-          }),
-        ]),
+        nextProps.content &&
+          div({ classes: ["actions-bar"] }, [
+            button({
+              classes: ["control", "done"],
+              textContent: "Close",
+              onclick: dialog.hide,
+            }),
+          ]),
       ]);
+
       return dialog.render({ children: [content] });
     }
 
     return {
       render: render,
-      show: dialog.show,
+      show: show,
       hide: dialog.hide,
     };
   }
@@ -1024,7 +1040,7 @@
     var node = div({
       classes: ["screen", "login", "hidden"],
     });
-    var help = new ConnectHelp();
+    var helpDialog = new HelpDialog();
     var loginButtonEl;
     var search = new URLSearchParams(location.search);
     var isUrlAuth = search.get("state") != null;
@@ -1111,7 +1127,7 @@
     }
 
     function onHelp() {
-      help.show();
+      helpDialog.show();
     }
 
     function hide() {
@@ -1160,7 +1176,7 @@
           textContent: "Help",
           onclick: onHelp,
         }),
-        help.render({ email: email }),
+        helpDialog.render({ email: email }),
       ]);
 
       return node;
@@ -1241,14 +1257,14 @@
           textContent: "History",
           onclick: onSelect.bind(null, "history"),
         })),
-        (items.menu = button({
+        (items.settings = button({
           classes: [
             "icon-button",
             "settings-button",
-            selected === "menu" && "selected",
+            selected === "settings" && "selected",
           ],
           textContent: "Settings",
-          onclick: onSelect.bind(null, "menu"),
+          onclick: onSelect.bind(null, "settings"),
         })),
         (items.feedback = button({
           classes: [
@@ -1296,22 +1312,26 @@
     });
   }
 
-  function ShareReminder() {
-    var node = div({ classes: ["share-reminder"] });
-    var maxReminds = 3;
-    var wait = 3 * 60 * 1000;
-    var minDelayAfterSubtitle = 3 * 1000;
-    var lastSubtitleTime = Date.now();
+  function ShareDialog() {
+    var node = div({ classes: ["share-dialog"] });
     var dialog = new Dialog();
     var shareOptions = {
       url: "https://lingvo.tv",
     };
+    var initialized = false;
 
-    function close() {
+    function onClose() {
       dialog.hide();
     }
 
-    function renderShare() {
+    function show() {
+      dialog.show();
+      if (initialized) return;
+      SocialShareKit.init(shareOptions);
+      initialized = true;
+    }
+
+    function render() {
       var content = div({ classes: ["social-share"] }, [
         h2({
           textContent: "Share LingvoTV with friends and receive an upgrade!",
@@ -1344,65 +1364,49 @@
         div({ classes: ["actions-bar"] }, [
           button({
             classes: ["control", "done"],
-            textContent: "Done",
-            onclick: close,
+            textContent: "Close",
+            onclick: onClose,
           }),
         ]),
       ]);
       $(node, [dialog.render({ children: [content] })]);
-      SocialShareKit.init(shareOptions);
-      dialog.show();
+      return node;
     }
 
-    function onYes() {
-      dialog.hide();
-      renderShare();
-    }
+    return {
+      show: show,
+      render: render,
+    };
+  }
 
-    function onNo() {
-      dialog.hide();
-      feedback();
-    }
+  function ShareReminder(props) {
+    var shareDialog = props.shareDialog;
+    var maxReminds = 3;
+    var wait = 1 * 60 * 1000;
+    var minDelayAfterSubtitle = 3 * 1000;
+    var lastSubtitleTime = Date.now();
+    var shareOptions = {
+      url: "https://lingvo.tv",
+    };
 
     function onSubtitle() {
       lastSubtitleTime = Date.now();
     }
 
-    function renderQuestion() {
-      var content = div({ classes: ["like-question"] }, [
-        h2({ textContent: "Do you like Lingvo TV?" }),
-        div({ classes: ["actions-bar"] }, [
-          button({
-            classes: ["control", "no"],
-            textContent: "No",
-            onclick: onNo,
-          }),
-          button({
-            classes: ["control", "yes"],
-            textContent: "Yes",
-            onclick: onYes,
-          }),
-        ]),
-      ]);
-      $(node, [dialog.render({ children: [content] })]);
-      dialog.show();
-    }
-
-    function start() {
+    function show() {
       if (state.shareReminderCounter >= maxReminds) return;
-
+      console.log(Date.now() - lastSubtitleTime, minDelayAfterSubtitle);
       if (Date.now() - lastSubtitleTime < minDelayAfterSubtitle) {
-        return setTimeout(start, 5000);
+        return setTimeout(show, 5000);
       }
 
       setState({ shareReminderCounter: ++state.shareReminderCounter });
-      renderQuestion();
+      shareDialog.show();
     }
 
-    setTimeout(start, wait);
+    setTimeout(show, wait);
 
     return {
-      node: node,
       onSubtitle: onSubtitle,
     };
   }
@@ -1430,7 +1434,7 @@
     var historyHeader;
     var historyFooter;
     var login;
-    var menu;
+    var settings;
     var nav;
     var controller;
     var jumper;
@@ -1442,8 +1446,8 @@
         switch (inst) {
           case stream:
             return nav.select("stream");
-          case menu:
-            return nav.select("menu");
+          case settings:
+            return nav.select("settings");
           case login:
             return nav.select("login");
           case history:
@@ -1461,8 +1465,8 @@
             return controller.show(stream);
           case "history":
             return controller.show(history);
-          case "menu":
-            return controller.show(menu);
+          case "settings":
+            return controller.show(settings);
           case "feedback":
             feedback();
             return false;
@@ -1544,8 +1548,11 @@
       },
     });
 
-    menu = Menu({
+    shareDialog = new ShareDialog();
+
+    settings = Settings({
       languages: config.languages,
+      shareDialog: shareDialog,
       onChangeSubLang: function (value) {
         setState({ subLang: value });
       },
@@ -1554,7 +1561,7 @@
       },
     });
 
-    shareReminder = new ShareReminder();
+    shareReminder = new ShareReminder({ shareDialog: shareDialog });
 
     function onSubtitle(data) {
       stream.append({ text: data.original });
@@ -1583,8 +1590,8 @@
         historyHeader.render(),
         historyFooter.render(),
         jumper.node,
-        menu.render(),
-        shareReminder.node,
+        settings.render(),
+        shareDialog.render(),
       ]);
 
       return node;
@@ -1781,6 +1788,30 @@
       update: update,
       delete: del,
     });
+  }
+
+  function FaqData() {
+    var data = { content: "" };
+    var promise;
+
+    function read() {
+      if (!promise) {
+        var host = "https://lingvo.tv";
+        // host = 'https://lingvo.loca.lt'
+        // host = 'http://localhost:8081
+        promise = request({ url: host + "/faq.html?" + Date.now() });
+      }
+
+      return promise
+        .then(function (content) {
+          data.content = content;
+          return data;
+        })
+        .catch(function (err) {
+          error("Reading FAQ failed:", err.message);
+        });
+    }
+    return assign(data, { read: read });
   }
 
   function init() {
