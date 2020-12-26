@@ -1135,9 +1135,9 @@
               h2({ textContent: "Welcome to LingvoTV Web App" }),
               h3({
                 innerHTML:
-                  "Enter <b>" +
+                  'Don\'t forget to install the <a href="https://chrome.google.com/webstore/detail/lingvo-tv/dgeiagkojabjccafojhokcceakmehpbb">Chrome Extension</a><br /> and then enter <b>' +
                   email +
-                  "</b> in Chrome Extension on the main screen to connect!",
+                  "</b> in it to connect!",
               }),
             ]),
           ]
