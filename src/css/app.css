@@ -143,16 +143,29 @@ a:visited {
 }
 /* Translation */
 .translation {
-  display: inline-block;
+  display: flex;
+  flex-wrap: wrap;
   text-align: left;
   min-width: 50%;
+  padding: 0 1em;
+}
+.translation .column {
+  width: 50%;
+  min-width: 400px;
+}
+.translation h2 {
+  font-weight: normal;
 }
 .translation .type {
   font-weight: bold;
   text-transform: capitalize;
 }
-.translation .words {
-  margin-left: 20px;
+.translation .translations {
+  margin: 0.5em 1em;
+  line-height: 1.3;
+}
+.translation .definitions {
+  margin: 0.5em 1em;
 }
 
 /* Upgrade Prompt */

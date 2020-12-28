@@ -616,31 +616,35 @@
       if (!props.translation) return node;
 
       $(node, [
-        h2({ textContent: 'Translations of "' + props.original + '"' }),
-        div(
-          props.translation.others.map(function (tr) {
-            return section([
-              div({ textContent: tr.type, classes: ["type"] }),
-              p({
-                innerHTML: tr.translations.join("<br />"),
-                classes: ["words"],
-              }),
-            ]);
-          })
-        ),
-        h2({ textContent: 'Definitions of "' + props.original + '"' }),
-        div(
-          props.translation.thesaurus.map(function (tr) {
-            return section([
-              div({ textContent: tr.type, classes: ["type"] }),
-              p(
-                tr.translations.map(function (tr) {
-                  return p({ textContent: tr, classes: ["words"] });
-                })
-              ),
-            ]);
-          })
-        ),
+        div({ classes: ["column"] }, [
+          h2({ textContent: 'Translations of "' + props.original + '"' }),
+          div(
+            props.translation.others.map(function (tr) {
+              return section([
+                div({ textContent: tr.type, classes: ["type"] }),
+                p({
+                  innerHTML: tr.translations.join("<br />"),
+                  classes: ["translations"],
+                }),
+              ]);
+            })
+          ),
+        ]),
+        div({ classes: ["column"] }, [
+          h2({ textContent: 'Definitions of "' + props.original + '"' }),
+          div(
+            props.translation.thesaurus.map(function (tr) {
+              return section([
+                div({ textContent: tr.type, classes: ["type"] }),
+                div(
+                  tr.translations.map(function (tr) {
+                    return p({ textContent: tr, classes: ["definitions"] });
+                  })
+                ),
+              ]);
+            })
+          ),
+        ]),
       ]);
 
       return node;
