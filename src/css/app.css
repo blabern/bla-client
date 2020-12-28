@@ -151,7 +151,7 @@ a:visited {
 }
 .translation .column {
   width: 50%;
-  min-width: 400px;
+  min-width: 300px;
 }
 .translation h2 {
   font-weight: normal;
