@@ -612,39 +612,61 @@
       return api;
     }
 
+    function renderMain(main) {
+      return div({ classes: ["column"] }, [
+        h2({ textContent: 'Translation of "' + props.original + '"' }),
+        p({
+          textContent: main,
+          classes: ["translations"],
+        }),
+      ]);
+    }
+
+    function renderOthers(others) {
+      return div({ classes: ["column"] }, [
+        h2({ textContent: 'Translations of "' + props.original + '"' }),
+        div(
+          others.map(function (tr) {
+            return section([
+              div({ textContent: tr.type, classes: ["type"] }),
+              p({
+                innerHTML: tr.translations.join("<br />"),
+                classes: ["translations"],
+              }),
+            ]);
+          })
+        ),
+      ]);
+    }
+
+    function renderDefinitions(thesaurus) {
+      return div({ classes: ["column"] }, [
+        h2({ textContent: 'Definitions of "' + props.original + '"' }),
+        div(
+          thesaurus.map(function (tr) {
+            return section([
+              div({ textContent: tr.type, classes: ["type"] }),
+              div(
+                tr.translations.map(function (tr) {
+                  return p({ textContent: tr, classes: ["definitions"] });
+                })
+              ),
+            ]);
+          })
+        ),
+      ]);
+    }
+
     function render() {
-      if (!props.translation) return node;
+      var translation = props.translation;
+      if (!translation) return node;
 
       $(node, [
-        div({ classes: ["column"] }, [
-          h2({ textContent: 'Translations of "' + props.original + '"' }),
-          div(
-            props.translation.others.map(function (tr) {
-              return section([
-                div({ textContent: tr.type, classes: ["type"] }),
-                p({
-                  innerHTML: tr.translations.join("<br />"),
-                  classes: ["translations"],
-                }),
-              ]);
-            })
-          ),
-        ]),
-        div({ classes: ["column"] }, [
-          h2({ textContent: 'Definitions of "' + props.original + '"' }),
-          div(
-            props.translation.thesaurus.map(function (tr) {
-              return section([
-                div({ textContent: tr.type, classes: ["type"] }),
-                div(
-                  tr.translations.map(function (tr) {
-                    return p({ textContent: tr, classes: ["definitions"] });
-                  })
-                ),
-              ]);
-            })
-          ),
-        ]),
+        translation.others.length
+          ? renderOthers(translation.others)
+          : renderMain(translation.main),
+        translation.thesaurus.length &&
+          renderDefinitions(translation.thesaurus),
       ]);
 
       return node;
