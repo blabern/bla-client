@@ -677,8 +677,8 @@
         div({ classes: ["content"] }, [
           h2({ textContent: "LingvoTV Premium" }),
           p({
-            textContent:
-              "Improve your vocabulary by rereading the new words after watching the movie!",
+            innerHTML:
+              'Improve your vocabulary by rereading the new words after watching the movie or exporting them to other tools like <a href="https://quizlet.com" target="_blank">Quizlet</a>',
           }),
           a({
             classes: ["control", "upgrade"],
@@ -880,6 +880,7 @@
     var userData = props.userData;
     var historyData = props.historyData;
     var upgradePrompt = props.upgradePrompt;
+    var featuresData = props.featuresData;
     var api;
 
     function setProps(nextProps) {
@@ -888,8 +889,9 @@
     }
 
     function onExport() {
-      if (!userData._id) {
-        upgradePrompt.show({ closable: true });
+      if (!featuresData.history) {
+        var isDemoMode = !Boolean(userData._id);
+        upgradePrompt.show({ closable: isDemoMode });
         return;
       }
 
@@ -1599,6 +1601,7 @@
       userData: userData,
       historyData: historyData,
       upgradePrompt: upgradePrompt,
+      featuresData: featuresData,
       onEdit: function () {
         history.setProps({ isInEditMode: true }).render();
         historyHeader.setProps({ isEditing: true }).render();
