@@ -616,22 +616,26 @@
       if (!props.translation) return node;
 
       $(node, [
-        h2({ textContent: props.original + " - " + props.translation.main }),
+        h2({ textContent: 'Translations of "' + props.original + '"' }),
         div(
           props.translation.others.map(function (tr) {
             return section([
-              div({ textContent: tr.type }),
-              p({ innerHTML: tr.translations.join("<br />") }),
+              div({ textContent: tr.type, classes: ["type"] }),
+              p({
+                innerHTML: tr.translations.join("<br />"),
+                classes: ["words"],
+              }),
             ]);
           })
         ),
+        h2({ textContent: 'Definitions of "' + props.original + '"' }),
         div(
           props.translation.thesaurus.map(function (tr) {
             return section([
-              div({ textContent: tr.type }),
+              div({ textContent: tr.type, classes: ["type"] }),
               p(
                 tr.translations.map(function (tr) {
-                  return p({ textContent: tr });
+                  return p({ textContent: tr, classes: ["words"] });
                 })
               ),
             ]);
@@ -889,9 +893,9 @@
     }
 
     function onExport() {
-      if (!featuresData.history) {
-        var isDemoMode = !Boolean(userData._id);
-        upgradePrompt.show({ closable: isDemoMode });
+      var isDemoMode = userData._id == null;
+      if (isDemoMode || !featuresData.history) {
+        upgradePrompt.show({ closable: true });
         return;
       }
 
