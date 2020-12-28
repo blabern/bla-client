@@ -233,16 +233,16 @@ a:visited {
   left: 0;
   height: 1px;
   width: 100%;
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.2);
   margin: 0;
 }
 .history .date-separator span {
   position: relative;
   padding: 0.2em 0.5em;
-  border: 1px solid rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 1em;
   background: #222;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(255, 255, 255, 0.5);
 }
 .history .edit-mode-container {
   display: flex;
