@@ -1,6 +1,6 @@
 html,
 body {
-  background: #000;
+  background: #130000;
   color: #fff;
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
 }
@@ -180,6 +180,7 @@ a:visited {
 
 .upgrade-prompt .upgrade {
   margin-top: 2em;
+  margin-right: 1em;
 }
 
 /* History */
