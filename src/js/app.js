@@ -793,11 +793,19 @@
       return api;
     }
 
+    function formatDate(date) {
+      if (window.Intl && window.Intl.DateTimeFormat) {
+        return new Intl.DateTimeFormat(navigator.language).format(date);
+      }
+
+      return (
+        date.getDate() + "." + (date.getMonth() + 1) + "." + date.getFullYear()
+      );
+    }
+
     function renderSeparator(date) {
-      var dateStr =
-        date.getDate() + "." + (date.getMonth() + 1) + "." + date.getFullYear();
       return div({ classes: ["date-separator"] }, [
-        span({ textContent: dateStr }),
+        span({ textContent: formatDate(date) }),
       ]);
     }
 
