@@ -247,6 +247,11 @@ a:visited {
 .history-header .button-container {
   flex: 1;
   flex-shrink: 0;
+}
+.history-header .button-container.left {
+  text-align: left;
+}
+.history-header .button-container.right {
   text-align: right;
 }
 .history-header button {

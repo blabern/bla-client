@@ -732,12 +732,16 @@
 
       if (entry) {
         // Add new lookups to the entry.
-        historyData.update(entry, { words: params.words });
+        historyData.update(entry, {
+          words: params.words,
+          mainTranslation: params.translation.translation.main,
+        });
       } else {
         entry = {
           createdAt: Date.now(),
           subtitle: params.subtitle,
           words: params.words,
+          mainTranslation: params.translation.translation.main,
         };
         historyData.create(entry);
       }
@@ -863,6 +867,8 @@
   function HistoryHeader(props) {
     var nav = Nav({ className: "history-header", top: true });
     var node = nav.node;
+    var userData = props.userData;
+    var historyData = props.historyData;
     var api;
 
     function setProps(nextProps) {
@@ -870,8 +876,30 @@
       return api;
     }
 
-    function renderButtons() {
-      if (props.historyData.length === 0) return;
+    function renderLeftButtons() {
+      if (historyData.length === 0) return;
+      return [
+        button({
+          download: "LingvoTV-History.csv",
+          textContent: "Export",
+          classes: ["text-button", props.isEditing ? "hidden" : ""],
+          onclick: function (event) {
+            saveAs(
+              config.baseApiUrl + "/history/download/" + userData._id,
+              "LingvoTV-History.csv"
+            );
+            ga("send", {
+              hitType: "event",
+              eventCategory: "history",
+              eventAction: "download",
+            });
+          },
+        }),
+      ];
+    }
+
+    function renderRightButtons() {
+      if (historyData.length === 0) return;
 
       return [
         button({
@@ -889,9 +917,9 @@
 
     function render() {
       return $(node, [
-        div({ classes: ["placeholder"] }),
+        div({ classes: ["button-container", "left"] }, renderLeftButtons()),
         div({ textContent: "History", classes: ["title"] }),
-        div({ classes: ["button-container"] }, renderButtons()),
+        div({ classes: ["button-container", "right"] }, renderRightButtons()),
       ]);
     }
 
@@ -1452,6 +1480,7 @@
     var shareReminder;
     var historyData = props.historyData;
     var featuresData = props.featuresData;
+    var userData = props.userData;
 
     controller = RenderController({
       onShow: function (inst) {
@@ -1487,16 +1516,19 @@
     });
 
     login = Login({
-      userData: props.userData,
+      userData: userData,
       onLogin: props.onLogin,
       onSignUp: props.onSignUp,
     });
 
     stream = Stream({
       onTranslate: function (params) {
-        history.add(params);
         historyHeader.setProps({ canEdit: true }).render();
-        return onTranslate(params.words);
+        return onTranslate(params.words).then(function (data) {
+          assign(params, { translation: data });
+          history.add(params);
+          return data;
+        });
       },
       onShowJumper: function () {
         jumper.show();
@@ -1550,6 +1582,7 @@
       nav.show();
     }
     historyHeader = HistoryHeader({
+      userData: userData,
       historyData: historyData,
       onEdit: function () {
         history.setProps({ isInEditMode: true }).render();
@@ -1672,17 +1705,20 @@
     var data = {};
 
     function update(nextData) {
-      // TODO Optimistically, rollback on error
       assign(data, nextData);
-
       return request({
         method: "PUT",
         path: "/user",
         data: data,
         needsAuth: true,
-      }).catch(function (err) {
-        error("Updating user failed:", err.message);
-      });
+      })
+        .then(function (nextData) {
+          return assign(data, nextData);
+        })
+        .catch(function (err) {
+          // TODO Optimistically, rollback on error
+          error("Updating user failed:", err.message);
+        });
     }
 
     return assign(data, {
@@ -1723,13 +1759,11 @@
     }
 
     function read(original) {
-      var lang = state.subLang + "-" + state.trLang;
-
       ga("send", {
         hitType: "event",
         eventCategory: "translation",
         eventAction: "translate",
-        eventLabel: lang,
+        eventLabel: state.subLang + "-" + state.trLang,
       });
 
       var url =
@@ -1751,7 +1785,12 @@
             err.data = data;
             throw err;
           }
-          return { original: original, translation: translation };
+          return {
+            original: original,
+            from: state.subLang,
+            to: state.trLang,
+            translation: translation,
+          };
         })
         .catch(function (err) {
           error("Fetching translation failed:", err.message);
@@ -1774,6 +1813,7 @@
           return Object.assign(data, res);
         })
         .catch(function (err) {
+          data.history = false;
           error("Fetching features failed:", err.message);
         });
     }
