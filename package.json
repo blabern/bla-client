@@ -2,16 +2,17 @@
   "dependencies": {
     "element-closest": "^1.0.3",
     "fastclick": "^1.0.6",
-    "whatwg-fetch": "^0.11.0",
-    "social-share-kit": "^1.0.8"
+    "file-saver": "^2.0.5",
+    "social-share-kit": "^1.0.8",
+    "whatwg-fetch": "^0.11.0"
   },
   "devDependencies": {
-    "node-static": "^0.7.7",
-    "localtunnel": "^1.8.1"
+    "localtunnel": "^1.8.1",
+    "node-static": "^0.7.7"
   },
   "scripts": {
     "start": "npm run static & npm run tunnel",
-    "static": "static . --spa",
+    "static": "static . --spa --headers '{\"Access-Control-Allow-Origin\": \"*\"}'",
     "tunnel": "lt -s lingvoclient -p 8080"
   }
 }
