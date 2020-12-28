@@ -75,7 +75,13 @@ a:visited {
 .app {
   position: absolute;
   bottom: 0;
-  top: 0;
+  /*
+    Weird workaround for mobile chrome:
+    Subtitles view with a translated word with lots of translation content, so that it's scrollable,
+    when moving up, moves the browser toolbar and bottom menu.
+  */
+  top: -1px;
+  padding-top: 1px;
   left: 0;
   right: 0;
   max-width: 1000px;
