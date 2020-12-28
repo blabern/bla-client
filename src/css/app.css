@@ -6,6 +6,13 @@ body {
   font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
   /* Removes pull to refresh */
   overflow: hidden;
+  /* Helvetica Neue feels a bit compressed too much */
+  letter-spacing: 1px;
+}
+h1,
+h2,
+h3 {
+  font-weight: 500;
 }
 input,
 select,
