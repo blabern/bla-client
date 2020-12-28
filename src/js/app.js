@@ -650,7 +650,8 @@
   }
 
   function UpgradePrompt() {
-    var node = div({ classes: ["upgrade-prompt", "hidden"] });
+    var node = div();
+
     function onUpgrade(e) {
       e.preventDefault();
       ga("send", {
@@ -662,16 +663,17 @@
       location.href = e.target.href;
     }
 
-    function show() {
-      node.classList.remove("hidden");
+    function show(options) {
+      render({ show: true, ...options });
     }
 
     function hide() {
-      node.classList.add("hidden");
+      render();
     }
 
-    function render() {
-      return $(node, [
+    function render(nextProps) {
+      nextProps || (nextProps = {});
+      $(node, { classes: ["upgrade-prompt", !nextProps.show && "hidden"] }, [
         div({ classes: ["content"] }, [
           h2({ textContent: "LingvoTV Premium" }),
           p({
@@ -684,8 +686,16 @@
             href: config.baseUrl + "/#pricing",
             onclick: onUpgrade,
           }),
+          // It is closable for demo mode before login, when clicked on export.
+          nextProps.closable &&
+            button({
+              textContent: "Close",
+              classes: ["control"],
+              onclick: hide,
+            }),
         ]),
       ]);
+      return node;
     }
 
     return {
@@ -869,6 +879,7 @@
     var node = nav.node;
     var userData = props.userData;
     var historyData = props.historyData;
+    var upgradePrompt = props.upgradePrompt;
     var api;
 
     function setProps(nextProps) {
@@ -876,7 +887,12 @@
       return api;
     }
 
-    function onExport(event) {
+    function onExport() {
+      if (!userData._id) {
+        upgradePrompt.show({ closable: true });
+        return;
+      }
+
       saveAs(
         config.baseApiUrl + "/history/download/" + userData._id,
         "LingvoTV-History.csv"
@@ -1582,6 +1598,7 @@
     historyHeader = HistoryHeader({
       userData: userData,
       historyData: historyData,
+      upgradePrompt: upgradePrompt,
       onEdit: function () {
         history.setProps({ isInEditMode: true }).render();
         historyHeader.setProps({ isEditing: true }).render();
