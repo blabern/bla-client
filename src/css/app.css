@@ -17,12 +17,8 @@ label {
   -webkit-user-select: none;
 }
 input[type="checkbox"] {
-  border: 1px solid #fff;
-  background: none;
-  border-radius: 50%;
   width: 1em;
   height: 1em;
-  -webkit-appearance: none;
 }
 input[type="checkbox"]:checked {
   background: #fff;
