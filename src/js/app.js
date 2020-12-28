@@ -876,6 +876,14 @@
       return api;
     }
 
+    function onExport(event) {
+      saveAs(
+        config.baseApiUrl + "/history/download/" + userData._id,
+        "LingvoTV-History.csv"
+      );
+      props.onExport();
+    }
+
     function renderLeftButtons() {
       if (historyData.length === 0) return;
       return [
@@ -883,17 +891,7 @@
           download: "LingvoTV-History.csv",
           textContent: "Export",
           classes: ["text-button", props.isEditing ? "hidden" : ""],
-          onclick: function (event) {
-            saveAs(
-              config.baseApiUrl + "/history/download/" + userData._id,
-              "LingvoTV-History.csv"
-            );
-            ga("send", {
-              hitType: "event",
-              eventCategory: "history",
-              eventAction: "download",
-            });
-          },
+          onclick: onExport,
         }),
       ];
     }
@@ -1591,6 +1589,13 @@
         nav.hide();
       },
       onDone: onDoneHistoryEdit,
+      onExport: function () {
+        ga("send", {
+          hitType: "event",
+          eventCategory: "history",
+          eventAction: "download",
+        });
+      },
     });
     historyFooter = HistoryFooter({
       onDelete: function () {
