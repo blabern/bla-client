@@ -378,18 +378,42 @@
           });
         },
       });
-      sections.push(section);
-      return section.render();
+      return {
+        node: section.render(),
+        section: section,
+      };
     }
 
     function append(data) {
       if (isEmpty) {
+        // Removing demo subtitle
         removeNode(sectionNodes.firstChild);
         isEmpty = false;
       }
+
+      var previousSection = sections[sections.length - 1];
+      var previousSubtitleData = stream[stream.length - 1];
+      var currentText = data.text;
+
+      if (previousSubtitleData) {
+        currentText = previousSection.subtitle.removeOverlaps(
+          data.text,
+          previousSubtitleData.text
+        );
+        if (!currentText) return;
+      }
+
       stream.push(data);
-      sections[sections.length - 1].setProps({ isPrimary: false }).render();
-      sectionNodes.appendChild(renderSection(data.text));
+
+      if (previousSection) {
+        previousSection.setProps({ isPrimary: false });
+        previousSection.render();
+      }
+
+      var nextSection = renderSection(currentText);
+      sections.push(nextSection.section);
+      sectionNodes.appendChild(nextSection.node);
+
       if (autoScroll) scrollToEnd();
     }
 
@@ -409,7 +433,7 @@
         (sectionNodes = div({ classes: ["sections"] }, [
           // Initial entry
           // People don't expect that they receive subtitles only if they play the movie.
-          renderSection("Start playing a movie with subtitles on"),
+          renderSection("Start playing a movie with subtitles on").node,
         ])),
       ]);
     }
@@ -476,6 +500,7 @@
     return (api = {
       node: node,
       render: render,
+      subtitle: subtitle,
       setProps: setProps,
     });
   }
@@ -565,6 +590,58 @@
       return api;
     }
 
+    function removeOverlaps(currentText, previousText) {
+      function cleanWords(text) {
+        return text.split(/\s/).map(clearWord);
+      }
+      var currentWords = cleanWords(currentText);
+      var previousWords = cleanWords(previousText);
+      var overlapStartWord;
+      var overlapWordOccurrenceNr = -1;
+
+      for (
+        var currentIndex = 0;
+        currentIndex < currentWords.length;
+        currentIndex++
+      ) {
+        var currentWord = currentWords[currentIndex];
+        var previousIndex = previousWords.indexOf(currentWord);
+
+        // We are testing an overlap by at least 3 words. It can overlap by 2
+        // but in this case we will just render them duplicated in the next subtitle.
+        if (
+          !overlapStartWord &&
+          previousIndex !== -1 &&
+          currentWords[currentIndex + 1] === previousWords[previousIndex + 1] &&
+          currentWords[currentIndex + 2] === previousWords[previousIndex + 2]
+        ) {
+          overlapStartWord = previousWords[previousWords.length - 1];
+        }
+
+        if (overlapStartWord && overlapStartWord === currentWord) {
+          overlapWordOccurrenceNr++;
+        }
+      }
+
+      if (overlapStartWord) {
+        // TODO this needs to consider overlapWordOccurrenceNr
+        var originalIndex = currentText.indexOf(overlapStartWord);
+        var updatedText = currentText.substr(
+          originalIndex + overlapStartWord.length
+        );
+        console.log({
+          originalIndex,
+          overlapStartWord,
+          currentText: currentText,
+          updatedText: updatedText,
+          previousText: previousText,
+          overlapWordOccurrenceNr,
+        });
+        return updatedText;
+      }
+      return currentText;
+    }
+
     function render() {
       if (!props.text) return node;
 
@@ -579,6 +656,7 @@
     return (api = {
       render: render,
       setProps: setProps,
+      removeOverlaps: removeOverlaps,
     });
   }
 
