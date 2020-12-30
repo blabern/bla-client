@@ -2041,4 +2041,29 @@
   }
 
   window.addEventListener("load", init);
+
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("/service-worker.js").then(
+        function (registration) {
+          console.log(
+            "ServiceWorker registration successful with scope: ",
+            registration.scope
+          );
+        },
+        function (err) {
+          console.log("ServiceWorker registration failed: ", err);
+        }
+      );
+    });
+  }
+
+  window.addEventListener("beforeinstallprompt", function () {
+    console.log("beforeinstallprompt");
+  });
+
+  //Track web app install by user
+  window.addEventListener("appinstalled", function () {
+    console.log("appinstalled");
+  });
 })();

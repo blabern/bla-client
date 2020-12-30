@@ -1,10 +1,30 @@
 {
   "version": ".1.0",
-  "name": "Lingvo.tv",
+  "name": "LingvoTV",
   "launch_path": "/index.html",
-  "description": "Learn languages while having fun.",
-  "icons": {
-    "60": "/src/img/touch/apple-touch-icon.png",
-    "128": "/src/img/touch/apple-touch-icon.png"
-  }
+  "description": "Learn languages while watching movies online on the go",
+  "display": "standalone",
+  "start_url": "/",
+  "icons": [
+    {
+      "src": "/src/img/touch/icon-60.png",
+      "type": "image/png",
+      "sizes": "60x60"
+    },
+    {
+      "src": "/src/img/touch/icon-128.png",
+      "type": "image/png",
+      "sizes": "128x128"
+    },
+    {
+      "src": "/src/img/touch/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/src/img/touch/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
 }
