@@ -7,7 +7,7 @@ body {
   /* Removes pull to refresh */
   overflow: hidden;
   /* Helvetica Neue feels a bit compressed too much */
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
 }
 h1,
 h2,
