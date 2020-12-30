@@ -93,8 +93,8 @@ a:visited {
   padding-top: 1px;
   left: 0;
   right: 0;
-  max-width: 1000px;
-  min-width: 300px;
+  max-width: 1200px;
+  min-width: 320px;
   background: #1c1c1c;
 }
 
@@ -166,8 +166,15 @@ a:visited {
 }
 .translation .column {
   width: 50%;
-  min-width: 300px;
+  min-width: 320px;
 }
+/* We want all window resolutions below this to go single column */
+@media (max-width: 1024px) {
+  .translation .column {
+    min-width: 100%;
+  }
+}
+
 .translation h2 {
   font-weight: normal;
 }
