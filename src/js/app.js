@@ -2058,12 +2058,11 @@
     });
   }
 
-  window.addEventListener("beforeinstallprompt", function () {
-    console.log("beforeinstallprompt");
-  });
-
-  //Track web app install by user
   window.addEventListener("appinstalled", function () {
-    console.log("appinstalled");
+    ga("send", {
+      hitType: "event",
+      eventCategory: "pwa",
+      eventAction: "installed",
+    });
   });
 })();
