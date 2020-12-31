@@ -928,8 +928,17 @@
 
     function onExport() {
       var isDemoMode = userData._id == null;
-      if (isDemoMode || !featuresData.history) {
+      // In demo mode user can't receive subtitles, because
+      // not logged in, so they should be able to click on a demo subtitle
+      // and see it in the history, but when they try to export,
+      // they should see the upgrade screen
+      if (isDemoMode) {
         upgradePrompt.show({ closable: true });
+        return;
+      }
+
+      // When history feature is disabled - do nothing.
+      if (!featuresData.history) {
         return;
       }
 
