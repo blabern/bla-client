@@ -1200,7 +1200,10 @@
         // We already got the same user,
         // This can happen when user visits login screen
         // and we are already logged in, but we needed to check.
+        // Or when we lost connection to the server and need to send the auth again,
+        // because server might have restarted.
         if (user.email === email) {
+          props.onAuth(email);
           return;
         }
         log("Authorized user", user);
@@ -1231,6 +1234,13 @@
       helpDialog.show();
     }
 
+    function onRequestAuth() {
+      if (isUrlAuth) return;
+      checkUser();
+
+      console.log("onRequestAuth");
+    }
+
     function hide() {
       helpDialog.hide();
       node.classList.add("hidden");
@@ -1238,8 +1248,6 @@
 
     function show() {
       node.classList.remove("hidden");
-      if (isUrlAuth) return;
-      checkUser();
     }
 
     function render() {
@@ -1310,6 +1318,7 @@
       render: render,
       hide: hide,
       show: show,
+      onRequestAuth: onRequestAuth,
     };
   }
 
@@ -1582,6 +1591,7 @@
       userData: userData,
       onLogin: props.onLogin,
       onSignUp: props.onSignUp,
+      onAuth: props.onAuth,
     });
 
     stream = Stream({
@@ -1700,10 +1710,6 @@
       return props.onTranslate(words);
     }
 
-    function requestAuthorization() {
-      controller.show(login);
-    }
-
     function render() {
       $(node, [
         nav.render(),
@@ -1721,11 +1727,14 @@
       return node;
     }
 
+    // Initial render.
+    controller.show(login);
+
     return {
       node: node,
       render: render,
       onSubtitle: onSubtitle,
-      requestAuthorization: requestAuthorization,
+      onRequestAuth: login.onRequestAuth,
     };
   }
 
@@ -2006,7 +2015,7 @@
         app.onSubtitle(data);
       },
       onRequestAuth: function () {
-        app.requestAuthorization();
+        app.onRequestAuth();
       },
     });
     var featuresData = FeaturesData();
@@ -2025,12 +2034,12 @@
           eventLabel: oktaUser.email,
         });
         request.token = oktaUser.sub;
-        socketio.authorize(oktaUser.email);
         userData.update(oktaUser).then(function (user) {
           request.userId = user._id;
           featuresData.read().then(app.render);
         });
       },
+      onAuth: socketio.authorize,
       onSignUp: function () {
         ga("send", {
           hitType: "event",
