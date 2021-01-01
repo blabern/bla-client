@@ -1207,8 +1207,8 @@
           return;
         }
         log("Authorized user", user);
-        props.onAuth(email);
         email = user.email;
+        props.onAuth(email);
         authStateMachine.state = "authorized";
         render();
         props.onLogin(user);
