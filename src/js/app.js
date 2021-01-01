@@ -1238,8 +1238,6 @@
     function onRequestAuth() {
       if (isUrlAuth) return;
       checkUser();
-
-      console.log("onRequestAuth");
     }
 
     function hide() {
@@ -2065,13 +2063,13 @@
     window.addEventListener("load", function () {
       navigator.serviceWorker.register("/service-worker.js").then(
         function (registration) {
-          console.log(
+          log(
             "ServiceWorker registration successful with scope: ",
             registration.scope
           );
         },
         function (err) {
-          console.log("ServiceWorker registration failed: ", err);
+          log("ServiceWorker registration failed: ", err);
         }
       );
     });
