@@ -446,6 +446,18 @@
             translation: translation,
             selected: param.words,
           }).render();
+        })
+        .catch(function (err) {
+          if (err.type === "FreeTranslationsLimit") {
+            alert(
+              [
+                "Free translations limit from Google API has been reached.",
+                "I am working on finding a long-term solution for that.",
+                ,
+                "Sorry for the inconvenience.",
+              ].join("\n")
+            );
+          }
         });
     }
 
@@ -1874,6 +1886,10 @@
         })
         .catch(function (err) {
           error("Fetching translation failed:", err.message);
+          if (err.name === "TypeError") {
+            err.type = "FreeTranslationsLimit";
+            throw err;
+          }
         });
     }
 
